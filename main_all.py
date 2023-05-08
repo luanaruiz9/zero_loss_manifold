@@ -102,7 +102,7 @@ dataiter = iter(trainloader)
 images, labels = next(dataiter)
 
 # show images
-imshow(torchvision.utils.make_grid(images))
+#imshow(torchvision.utils.make_grid(images))
 # print labels
 print(' '.join(f'{classes[labels[j]]:5s}' for j in range(batch_size)))
 
@@ -232,7 +232,7 @@ weights_list.append(weights)
 
 plt.figure()
 plt.plot(loss_vec)
-plt.show()
+#plt.show()
 
 ########################################################################
 # Let's quickly save our trained model:
@@ -260,7 +260,7 @@ dataiter = iter(testloader)
 images, labels = next(dataiter)
 
 # print images
-imshow(torchvision.utils.make_grid(images))
+#imshow(torchvision.utils.make_grid(images))
 print('GroundTruth: ', ' '.join(f'{classes[labels[j]]:5s}' for j in range(4)))
 
 ########################################################################
@@ -296,6 +296,8 @@ total = 0
 with torch.no_grad():
     for data in testloader:
         images, labels = data
+        images = images.to(device)
+        labels = labels.to(device)
         # calculate outputs by running images through the network
         outputs = net(images)
         # the class with the highest energy is what we choose as prediction

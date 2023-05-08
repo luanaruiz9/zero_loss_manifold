@@ -55,6 +55,7 @@ transform = transforms.Compose(
      transforms.Normalize((0.5), (0.5))])
 
 n_epochs = 60
+val_interval = int(1000/32*batch_size)
 
 train_perm = torch.randperm(60000)
 val_ratio = 0.1
@@ -198,13 +199,13 @@ for epoch in range(n_epochs):  # loop over the dataset multiple times
 
         # print statistics
         running_loss += loss.item()
-        if i % 1000 == 999:    # print every 100 mini-batches
+        if i % val_interval == val_interval-1:    # print every 100 mini-batches
             weights = []
             for weight in list(net.parameters()):
                 weights.append(weight.detach().clone())
             weights_list.append(weights)
-            loss_vec.append(running_loss/1000)
-            print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 1000:.3f}')
+            loss_vec.append(running_loss/val_interval)
+            print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / val_interval:.3f}')
             running_loss = 0.0
             total = 0
             correct = 0

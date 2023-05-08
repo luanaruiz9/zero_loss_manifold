@@ -18,16 +18,16 @@ print(device)
 np.random.seed(0)
 reduction_factor = 1
 
-m = int(sys.argv[1]) #6
-alpha = float(sys.argv[2]) #0.01 
+m = 6#int(sys.argv[1]) #6
+alpha = 0.01#float(sys.argv[2]) #0.01 
 sig = 0.05
-batch_size = sys.argv[3] #32 #'all'
+batch_size = 32#sys.argv[3] #32 #'all'
 if 'all' not in str(batch_size):
     batch_size = int(batch_size)
 lr = 0.001
-label_noise = False
+label_noise = True
 
-thisFilename = 'zero_loss_manifold_' + str(m) + '_' + str(alpha) + '_' + str(batch_size) # This is the general name of all related files
+thisFilename = 'zero_loss_manifold_label_noise_' + str(m) + '_' + str(alpha) + '_' + str(batch_size) # This is the general name of all related files
 saveDirRoot = 'experiments' # In this case, relative location
 saveDir = os.path.join(saveDirRoot, thisFilename) 
 
@@ -66,7 +66,8 @@ trainset = torch.utils.data.Subset(trainset,
                                    train_perm[int(val_ratio*reduction_factor*60000):int(reduction_factor*60000)])
 if batch_size == 'all':
     batch_size = int(reduction_factor*60000)-int(val_ratio*reduction_factor*60000)
-val_interval = np.ceil(1000/batch_size*32)
+lr = np.sqrt(batch_size/32)*lr
+val_interval = np.ceil(reduction_factor*1000/batch_size*32)
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                           shuffle=True, num_workers=0)
 valloader = torch.utils.data.DataLoader(valset, batch_size=batch_size,
@@ -186,7 +187,7 @@ for epoch in range(n_epochs):  # loop over the dataset multiple times
         # forward + backward + optimize
         outputs = net(inputs)
         updated_labels = F.one_hot(labels, num_classes=10).float() 
-        noisy_labels = updated_labels
+        noisy_labels = updated_labels.clone()
         if label_noise:
             noisy_labels += torch.normal(0,
                                          sig*torch.ones(updated_labels.shape,device=device))

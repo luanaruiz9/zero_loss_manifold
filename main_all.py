@@ -18,10 +18,10 @@ print(device)
 np.random.seed(0)
 reduction_factor = 1
 
-m = 6#int(sys.argv[1]) #6
-alpha = 0.01#float(sys.argv[2]) #0.01 
+m = int(sys.argv[1]) #6
+alpha = float(sys.argv[2]) #0.01 
 sig = 0.05
-batch_size = 32#sys.argv[3] #32 #'all'
+batch_size = sys.argv[3] #32 #'all'
 if 'all' not in str(batch_size):
     batch_size = int(batch_size)
 lr = 0.001

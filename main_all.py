@@ -55,7 +55,7 @@ transform = transforms.Compose(
      transforms.Normalize((0.5), (0.5))])
 
 n_epochs = 60
-val_interval = int(1000/32*batch_size)
+val_interval = np.ceil(1000/batch_size*32)
 
 train_perm = torch.randperm(60000)
 val_ratio = 0.1

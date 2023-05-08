@@ -28,7 +28,6 @@ lr = 0.001
 label_noise = False
 
 thisFilename = 'zero_loss_manifold_' + str(m) + '_' + str(alpha) + '_' + str(batch_size) # This is the general name of all related files
-
 saveDirRoot = 'experiments' # In this case, relative location
 saveDir = os.path.join(saveDirRoot, thisFilename) 
 
@@ -55,7 +54,7 @@ transform = transforms.Compose(
     [transforms.ToTensor(),
      transforms.Normalize((0.5), (0.5))])
 
-n_epochs = 90
+n_epochs = 60
 
 train_perm = torch.randperm(60000)
 val_ratio = 0.1
@@ -199,13 +198,13 @@ for epoch in range(n_epochs):  # loop over the dataset multiple times
 
         # print statistics
         running_loss += loss.item()
-        if i % 50 == 49:    # print every 100 mini-batches
+        if i % 1000 == 999:    # print every 100 mini-batches
             weights = []
             for weight in list(net.parameters()):
                 weights.append(weight.detach().clone())
             weights_list.append(weights)
-            loss_vec.append(running_loss/50)
-            print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 50:.3f}')
+            loss_vec.append(running_loss/1000)
+            print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 1000:.3f}')
             running_loss = 0.0
             total = 0
             correct = 0

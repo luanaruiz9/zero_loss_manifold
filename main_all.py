@@ -164,8 +164,8 @@ scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.1)
 loss_vec = []
 weights_list = []
 acc_old = 0
-save_labels = torch.empty(0)
-save_x = torch.empty(0)
+save_labels = torch.empty(0, device=device)
+save_x = torch.empty(0, device=device)
 
 for epoch in range(n_epochs):  # loop over the dataset multiple times
     running_loss = 0.0

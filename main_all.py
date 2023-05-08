@@ -275,6 +275,8 @@ net.load_state_dict(torch.load(PATH))
 ########################################################################
 # Okay, now let us see what the neural network thinks these examples above are:
 
+outputs = outputs.to(device)
+images = images.to(device)
 outputs = net(images)
 
 ########################################################################

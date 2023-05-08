@@ -55,7 +55,6 @@ transform = transforms.Compose(
      transforms.Normalize((0.5), (0.5))])
 
 n_epochs = 60
-val_interval = np.ceil(1000/batch_size*32)
 
 train_perm = torch.randperm(60000)
 val_ratio = 0.1
@@ -67,6 +66,7 @@ trainset = torch.utils.data.Subset(trainset,
                                    train_perm[int(val_ratio*reduction_factor*60000):int(reduction_factor*60000)])
 if batch_size == 'all':
     batch_size = int(reduction_factor*60000)-int(val_ratio*reduction_factor*60000)
+val_interval = np.ceil(1000/batch_size*32)
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                           shuffle=True, num_workers=0)
 valloader = torch.utils.data.DataLoader(valset, batch_size=batch_size,

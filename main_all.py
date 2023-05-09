@@ -25,9 +25,9 @@ batch_size = sys.argv[3] #32 #'all'
 if 'all' not in str(batch_size):
     batch_size = int(batch_size)
 lr = 0.0001
-label_noise = True
+label_noise = False
 
-thisFilename = 'zero_loss_manifold_label_noise_' + str(m) + '_' + str(alpha) + '_' + str(batch_size) # This is the general name of all related files
+thisFilename = 'zero_loss_manifold_' + str(m) + '_' + str(alpha) + '_' + str(batch_size) # This is the general name of all related files
 saveDirRoot = 'experiments' # In this case, relative location
 saveDir = os.path.join(saveDirRoot, thisFilename) 
 

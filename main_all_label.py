@@ -251,15 +251,15 @@ weights_list.append(weights)
 fig, ax1 = plt.subplots()
 
 color = 'tab:red'
-ax1.set_xlabel('Training Steps')
+ax1.set_xlabel('Epochs')
 ax1.set_ylabel('Training Loss (MSE)')
 ax1.plot(loss_vec, color=color)
 
 ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
 
 color = 'tab:blue'
-ax2.set_ylabel('Test accuracy (%)')  # we already handled the x-label with ax1
-ax2.plot(test_accs, color=color)
+ax2.set_ylabel('Test Accuracy (%)')  # we already handled the x-label with ax1
+ax2.plot(100*test_accs, color=color)
 
 fig.tight_layout()
 
@@ -375,6 +375,8 @@ for classname, correct_count in correct_pred.items():
     accuracy = 100 * float(correct_count) / total_pred[classname]
     print(f'Accuracy for class: {classname:5s} is {accuracy:.1f} %')
 
+save_dict = {'train_loss': loss_vec, 'test_acc': test_accs}
+pkl.dump(save_dict,open(os.path.join(saveDir,'train_test.p'),'wb'))
 save_dict = {'weights_list': weights_list, 'save_labels': save_labels, 'save_x': save_x}
 pkl.dump(save_dict,open(os.path.join(saveDir,'saved_data.p'),'wb'))
 
@@ -427,7 +429,7 @@ pkl.dump(save_dict,open(os.path.join(saveDir,'rrmse.p'),'wb'))
 
 fig.add_subplot(111, frameon=False)
 plt.tick_params(labelcolor='none', which='both', top=False, bottom=False, left=False, right=False)
-plt.xlabel("Training Steps")
+plt.xlabel("Epochs")
 plt.ylabel("RRMSE (%)")
     
 fig.savefig(os.path.join(saveDir,'rrmse.png'))

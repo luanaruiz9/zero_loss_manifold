@@ -24,7 +24,7 @@ sig = 0.05
 batch_size = sys.argv[3] #32 #'all'
 if 'all' not in str(batch_size):
     batch_size = int(batch_size)
-lr = 0.0001
+lr = 0.001
 label_noise = False
 
 thisFilename = 'zero_loss_manifold_' + str(m) + '_' + str(alpha) + '_' + str(batch_size) # This is the general name of all related files
@@ -66,7 +66,9 @@ trainset = torch.utils.data.Subset(trainset,
                                    train_perm[int(val_ratio*reduction_factor*60000):int(reduction_factor*60000)])
 if batch_size == 'all':
     batch_size = int(reduction_factor*60000)-int(val_ratio*reduction_factor*60000)
+print(batch_size)
 lr = np.sqrt(batch_size/32)*lr
+print(lr)
 val_interval = np.ceil(reduction_factor*1000/batch_size*32)
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                           shuffle=True, num_workers=0)

@@ -239,7 +239,7 @@ for epoch in range(n_epochs):  # loop over the dataset multiple times
                     _, predicted = torch.max(outputs.data, 1)
                     total += labels.size(0)
                     correct += (predicted == labels).sum().item()
-                test_accs.append(correct/total)
+                test_accs.append(100*correct/total)
                 
     scheduler.step()
 print('Finished Training')
@@ -259,7 +259,7 @@ ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
 
 color = 'tab:blue'
 ax2.set_ylabel('Test Accuracy (%)')  # we already handled the x-label with ax1
-ax2.plot(100*test_accs, color=color)
+ax2.plot(test_accs, color=color)
 
 fig.tight_layout()
 

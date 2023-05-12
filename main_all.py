@@ -9,25 +9,40 @@ import torch
 import torchvision
 import torchvision.transforms as transforms
 from sklearn.linear_model import LinearRegression
+from sklearn.cluster import KMeans
 from tqdm import tqdm
+
+import dataset
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 #torch.set_default_device(device)
 print(device)
 
-np.random.seed(0)
-reduction_factor = 1
+np.random.seed(13)
 
-m = int(sys.argv[1]) #6
-alpha = float(sys.argv[2]) #0.01 
+channels = 1
+feats = 28
+C = 10
+
+m = 6#int(sys.argv[1]) #6
+alpha = 0.1#float(sys.argv[2]) #0.01 
 sig = 0.05
-batch_size = sys.argv[3] #32 #'all'
+batch_size = 32#sys.argv[3] #32 #'all'
+low_data = False#str(sys.argv[4]) == 'True'
 if 'all' not in str(batch_size):
     batch_size = int(batch_size)
 lr = 0.001
 label_noise = True
 
-thisFilename = 'zero_loss_manifold_label_noise_' + str(m) + '_' + str(alpha) + '_' + str(batch_size) # This is the general name of all related files
+scaling = 0.5
+if low_data:
+    reduction_factor = scaling*(feats*feats-1)/60000
+else:
+    reduction_factor = scaling*5*(feats*feats-1)/60000
+if label_noise:
+    thisFilename = 'mnist_label_noise_' + str(m) + '_' + str(alpha) + '_' + str(batch_size) # This is the general name of all related files
+else:
+    thisFilename = 'mnist_' + str(m) + '_' + str(alpha) + '_' + str(batch_size) # This is the general name of all related files
 saveDirRoot = 'experiments' # In this case, relative location
 saveDir = os.path.join(saveDirRoot, thisFilename) 
 
@@ -56,16 +71,17 @@ transform = transforms.Compose(
 
 n_epochs = 60
 
-train_perm = torch.randperm(60000)
 val_ratio = 0.1
 trainset = torchvision.datasets.MNIST(root='./data', train=True,
                                         download=True, transform=transform)
+train_size = len(trainset)
+train_perm = torch.randperm(train_size)
 valset = torch.utils.data.Subset(trainset,
-                                   train_perm[0:int(val_ratio*reduction_factor*60000)])
+                                   train_perm[0:int(val_ratio*reduction_factor*train_size)])
 trainset = torch.utils.data.Subset(trainset,
-                                   train_perm[int(val_ratio*reduction_factor*60000):int(reduction_factor*60000)])
+                                   train_perm[int(val_ratio*reduction_factor*train_size):int(reduction_factor*train_size)])
 if batch_size == 'all':
-    batch_size = int(reduction_factor*60000)-int(val_ratio*reduction_factor*60000)
+    batch_size = int(reduction_factor*train_size)-int(val_ratio*reduction_factor*train_size)
 print(batch_size)
 lr = np.sqrt(batch_size/32)*lr
 print(lr)
@@ -76,13 +92,13 @@ valloader = torch.utils.data.DataLoader(valset, batch_size=batch_size,
                                          shuffle=False, num_workers=0)
 testset = torchvision.datasets.MNIST(root='./data', train=False,
                                        download=True, transform=transform)
+test_size = len(testset)
 testset = torch.utils.data.Subset(testset,
-                                   torch.randperm(10000)[0:int(reduction_factor*10000)])
+                                   torch.randperm(test_size)[0:int(reduction_factor*test_size)])
 testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
                                          shuffle=False, num_workers=0)
 
-classes = ('plane', 'car', 'bird', 'cat',
-           'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+classes = ('0','1','2','3','4','5','6','7','8','9')
 
 ########################################################################
 # Let us show some of the training images, for fun.
@@ -129,7 +145,7 @@ class Net(nn.Module):
         self.alpha = alpha
         fc = []
         for i in range(m):
-            fc.append(nn.Linear(1*28*28, 10, bias=False, device=device))
+            fc.append(nn.Linear(channels*feats*feats, C, bias=False, device=device))
         self.fc = nn.ParameterList(fc)
 
     def forward(self, x):
@@ -189,7 +205,7 @@ for epoch in range(n_epochs):  # loop over the dataset multiple times
 
         # forward + backward + optimize
         outputs = net(inputs)
-        updated_labels = F.one_hot(labels, num_classes=10).float() 
+        updated_labels = F.one_hot(labels, num_classes=C).float() 
         noisy_labels = updated_labels.clone()
         if label_noise:
             noisy_labels += torch.normal(0,
@@ -341,7 +357,7 @@ with torch.no_grad():
         total += labels.size(0)
         correct += (predicted == labels).sum().item()
 
-print(f'Accuracy of the network on the 10000 test images: {100 * correct // total} %')
+print(f'Accuracy of the network on the test images: {100 * correct // total} %')
 
 ########################################################################
 # That looks way better than chance, which is 10% accuracy (randomly picking
@@ -406,25 +422,30 @@ regressor.fit(x, y)
 
 coefficients = regressor.coef_
 
-y_hat = np.dot(x,np.transpose(coefficients))
+y_reg = np.dot(x,np.transpose(coefficients))
 
 figSize = (200/3*int(m/2),15)
 plt.rcParams.update({'font.size': 8})
 
 fig, axs = plt.subplots(2,int(m/2),sharex=True, sharey=True)
 
+save_y_gnn = np.zeros((len(weights_list),m,x.shape[0],C)) # training steps, m, nb of samples, nb of classes
+save_rrmse = []
+
 for i in range(m):
     rrmse = []
-    for weights in weights_list:
+    for j, weights in enumerate(weights_list):
         weight = weights[i].cpu().numpy()
-        y_hat_2 = np.dot(x,np.transpose(weight))
-        rrmse.append(100*np.sqrt(np.mean(np.linalg.norm(y_hat-y_hat_2,axis=-1)**2)/
-                                 np.sum(np.linalg.norm(y_hat,axis=-1)**2)))      
+        y_gnn = np.dot(x,np.transpose(weight))
+        rrmse.append(100*np.sqrt(np.mean(np.linalg.norm(y_reg-y_gnn,axis=-1)**2)/
+                                 np.sum(np.linalg.norm(y_reg,axis=-1)**2)))   
+        save_y_gnn[j,i] = y_gnn
     rrmse = np.array(rrmse)
+    save_rrmse.append(rrmse)
     print(rrmse[-1])
     axs[int(i % 2),int(i % int(m/2))].plot(rrmse)
     
-save_dict = {'rrmse': rrmse}
+save_dict = {'rrmse': save_rrmse}
 pkl.dump(save_dict,open(os.path.join(saveDir,'rrmse.p'),'wb'))
 
 fig.add_subplot(111, frameon=False)
@@ -434,3 +455,21 @@ plt.ylabel("RRMSE (%)")
     
 fig.savefig(os.path.join(saveDir,'rrmse.png'))
 fig.savefig(os.path.join(saveDir,'rrmse.pdf'))
+
+# Rank
+
+fig_rank, ax_rank = plt.subplots(1,1)
+
+rank = []
+for i in range(save_y_gnn.shape[0]):
+    rank.append(np.linalg.matrix_rank(np.reshape(save_y_gnn[i],(m,-1)),tol=0.01))
+    
+save_dict = {'rank': rank}
+pkl.dump(save_dict,open(os.path.join(saveDir,'rank.p'),'wb'))
+
+ax_rank.plot(rank)
+plt.xlabel("Epochs")
+plt.ylabel("Rank")
+    
+fig_rank.savefig(os.path.join(saveDir,'rank.png'))
+fig_rank.savefig(os.path.join(saveDir,'rank.pdf'))

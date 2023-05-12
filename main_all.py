@@ -461,13 +461,17 @@ fig.savefig(os.path.join(saveDir,'rrmse.pdf'))
 fig_rank, ax_rank = plt.subplots(1,1)
 
 rank = []
+second_eig = []
 for i in range(save_y_gnn.shape[0]):
     rank.append(np.linalg.matrix_rank(np.reshape(save_y_gnn[i],(m,-1)),tol=0.01))
+    L, _ = np.linalg.eig(np.reshape(save_y_gnn[i],(m,-1)))
+    L = np.sort(np.abs(L),'ascend')
+    second_eig.append(L[1])
     
 save_dict = {'rank': rank}
 pkl.dump(save_dict,open(os.path.join(saveDir,'rank.p'),'wb'))
 
-ax_rank.plot(rank)
+ax_rank.plot(second_eig)
 plt.xlabel("Epochs")
 plt.ylabel("Rank")
     

@@ -468,8 +468,14 @@ for i in range(save_y_gnn.shape[0]):
     labels3 = kmeans3.fit_predict(cur_y)
     dist3 = kmeans3.transform(cur_y)
     error3.append(np.mean(dist3[:,labels3-1]))
-    
+  
+plt.figure()
 plt.plot(error1)
+plt.show()
+plt.figure()
 plt.plot(error2)
+plt.show()
+plt.figure()
 plt.plot(error3)
+plt.show()
 

@@ -18,7 +18,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 #torch.set_default_device(device)
 print(device)
 
-np.random.seed(13)
+np.random.seed(0)
 
 channels = 1
 feats = 28

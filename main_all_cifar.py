@@ -18,7 +18,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 #torch.set_default_device(device)
 print(device)
 
-np.random.seed(1)
+np.random.seed(10)
 
 m = 20#int(sys.argv[1]) #6
 alpha = 0.1#float(sys.argv[2]) #0.01 
@@ -27,7 +27,7 @@ batch_size = 32#sys.argv[3] #32 #'all'
 low_data = False#str(sys.argv[4]) == 'True'
 if 'all' not in str(batch_size):
     batch_size = int(batch_size)
-lr = 0.0001
+lr = 0.001
 label_noise = True
 if low_data:
     reduction_factor = 0.5
@@ -61,7 +61,7 @@ if not os.path.exists(saveDir):
 
 transform = transforms.Compose(
     [transforms.ToTensor(),
-     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
 n_epochs = 80
 

@@ -16,7 +16,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 #torch.set_default_device(device)
 print(device)
 
-np.random.seed(13)
+np.random.seed(0)
 
 m = 6#int(sys.argv[1]) #6
 alpha = 0.1#float(sys.argv[2]) #0.01 

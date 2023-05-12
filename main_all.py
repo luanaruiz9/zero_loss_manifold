@@ -464,8 +464,8 @@ rank = []
 second_eig = []
 for i in range(save_y_gnn.shape[0]):
     rank.append(np.linalg.matrix_rank(np.reshape(save_y_gnn[i],(m,-1)),tol=0.01))
-    L, _ = np.linalg.eig(np.reshape(save_y_gnn[i],(m,-1)))
-    L = np.sort(np.abs(L),'ascend')
+    _, L, _ = np.linalg.svd(np.reshape(save_y_gnn[i],(m,-1)))
+    second_eig.append(L[1])
     second_eig.append(L[1])
     
 save_dict = {'rank': rank}

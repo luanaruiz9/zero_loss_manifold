@@ -18,16 +18,16 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 #torch.set_default_device(device)
 print(device)
 
-np.random.seed(13)
+np.random.seed(1)
 
-m = 6#int(sys.argv[1]) #6
+m = 20#int(sys.argv[1]) #6
 alpha = 0.1#float(sys.argv[2]) #0.01 
 sig = 0.05
 batch_size = 32#sys.argv[3] #32 #'all'
 low_data = False#str(sys.argv[4]) == 'True'
 if 'all' not in str(batch_size):
     batch_size = int(batch_size)
-lr = 0.001
+lr = 0.0001
 label_noise = True
 if low_data:
     reduction_factor = 0.5
@@ -61,9 +61,9 @@ if not os.path.exists(saveDir):
 
 transform = transforms.Compose(
     [transforms.ToTensor(),
-     transforms.Normalize((0.5), (0.5))])
+     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
-n_epochs = 60
+n_epochs = 80
 
 val_ratio = 0.1
 # cat and dog are 3 and 5
@@ -170,7 +170,7 @@ import torch.optim as optim
 
 criterion = nn.MSELoss()
 optimizer = optim.SGD(net.parameters(), lr=lr)#, weight_decay=0.0005)
-scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.1)
+scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
 
 ########################################################################
 # 4. Train the network

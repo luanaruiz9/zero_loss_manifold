@@ -18,13 +18,13 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 #torch.set_default_device(device)
 print(device)
 
-np.random.seed(10)
+np.random.seed(1)
 
 channels = 1
 feats = 28
 C = 10
 
-m = 6#int(sys.argv[1]) #6
+m = 10#int(sys.argv[1]) #6
 alpha = 0.1#float(sys.argv[2]) #0.01 
 sig = 0.2
 batch_size = 32#sys.argv[3] #32 #'all'
@@ -465,7 +465,7 @@ fig_rank, ax_rank = plt.subplots(1,2)
 
 rank = []
 eigs = np.zeros((m,save_y_gnn.shape[0]))
-save_y_gnn = save_y_gnn[:,:,:,0]
+save_y_gnn = save_y_gnn[:,:,save_labels[:,0]==1,0]
 
 for i in range(save_y_gnn.shape[0]):
     rank.append(np.linalg.matrix_rank(np.reshape(save_y_gnn[i],(m,-1)),tol=0.01))

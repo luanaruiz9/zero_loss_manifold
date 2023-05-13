@@ -26,9 +26,9 @@ C = 10
 
 m = 6#int(sys.argv[1]) #6
 alpha = 0.1#float(sys.argv[2]) #0.01 
-sig = 0.05
+sig = 0.2
 batch_size = 32#sys.argv[3] #32 #'all'
-low_data = True#str(sys.argv[4]) == 'True'
+low_data = False#str(sys.argv[4]) == 'True'
 if 'all' not in str(batch_size):
     batch_size = int(batch_size)
 lr = 0.001
@@ -36,8 +36,7 @@ label_noise = True
 
 scaling = 1
 if low_data:
-    lr = 0.1*lr
-    reduction_factor = 0.9*scaling*(feats*feats)/60000
+    reduction_factor = 0.9*scaling*(2*feats*feats)/60000
 else:
     reduction_factor = 1.1*scaling*C*(m)*(feats*feats-1)/60000
 if label_noise:
@@ -70,8 +69,11 @@ transform = transforms.Compose(
     [transforms.ToTensor(),
      transforms.Normalize((0.5), (0.5))])
 
-n_epochs = 100
-
+if low_data == True:
+    n_epochs = 300
+else:
+    n_epochs = 50
+    
 val_ratio = 0.1
 trainset = torchvision.datasets.MNIST(root='./data', train=True,
                                         download=True, transform=transform)

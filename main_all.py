@@ -461,7 +461,7 @@ fig.savefig(os.path.join(saveDir,'rrmse.pdf'))
 fig_rank, ax_rank = plt.subplots(1,1)
 
 rank = []
-eigs = np.zeros(m,save_y_gnn.shape[0])
+eigs = np.zeros((m,save_y_gnn.shape[0]))
 for i in range(save_y_gnn.shape[0]):
     rank.append(np.linalg.matrix_rank(np.reshape(save_y_gnn[i],(m,-1)),tol=0.01))
     _, L, _ = np.linalg.svd(np.reshape(save_y_gnn[i],(m,-1)))

@@ -28,7 +28,7 @@ m = 10#int(sys.argv[1]) #6
 alpha = 0.1#float(sys.argv[2]) #0.01 
 sig = 0.2
 batch_size = 32#sys.argv[3] #32 #'all'
-low_data = True#str(sys.argv[4]) == 'True'
+low_data = False#str(sys.argv[4]) == 'True'
 if 'all' not in str(batch_size):
     batch_size = int(batch_size)
 lr = 0.001

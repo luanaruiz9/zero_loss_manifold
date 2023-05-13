@@ -28,7 +28,7 @@ m = 6#int(sys.argv[1]) #6
 alpha = 0.1#float(sys.argv[2]) #0.01 
 sig = 0.2
 batch_size = 32#sys.argv[3] #32 #'all'
-low_data = False#str(sys.argv[4]) == 'True'
+low_data = True#str(sys.argv[4]) == 'True'
 if 'all' not in str(batch_size):
     batch_size = int(batch_size)
 lr = 0.001
@@ -70,7 +70,7 @@ transform = transforms.Compose(
      transforms.Normalize((0.5), (0.5))])
 
 if low_data == True:
-    n_epochs = 300
+    n_epochs = 150
 else:
     n_epochs = 50
     
@@ -461,27 +461,33 @@ fig.savefig(os.path.join(saveDir,'rrmse.pdf'))
 
 # Rank
 
-fig_rank, ax_rank = plt.subplots(1,2)
+fig_rank, ax_rank = plt.subplots(1,3)
 
 rank = []
 eigs = np.zeros((m,save_y_gnn.shape[0]))
+dots = np.zeros((m,save_y_gnn.shape[0]))
+
 for i in range(save_y_gnn.shape[0]):
     rank.append(np.linalg.matrix_rank(np.reshape(save_y_gnn[i],(m,-1)),tol=0.01))
     #_, L, _ = np.linalg.svd(np.reshape(save_y_gnn[i],(m,-1)))
     #eigs[:,i] = L[0:m]
     aux_tensor = torch.tensor(np.reshape(save_y_gnn[i],(m,-1)))
     aux_tensor = aux_tensor.to_sparse()
-    _, L,_ = torch.svd_lowrank(aux_tensor,q=m)
+    U, L,_ = torch.svd_lowrank(aux_tensor,q=m)
     eigs[:,i] = L.cpu().numpy()
+    U = U.cpu().numpy()
+    dots[:,i] = np.dot(U[:,0],U[:,i])
     
 save_dict = {'rank': rank}
 pkl.dump(save_dict,open(os.path.join(saveDir,'rank.p'),'wb'))
 
 for i in range(m):
     ax_rank[0].plot(eigs[i]/eigs[0], label='lam'+str(i+1))
+    ax_rank[1].plot(dots[i], label='lam'+str(i+1))
 
 ax_rank[0].legend()
-ax_rank[1].plot(rank)
+ax_rank[1].legend()
+ax_rank[2].plot(rank)
     
 fig_rank.savefig(os.path.join(saveDir,'rank.png'))
 fig_rank.savefig(os.path.join(saveDir,'rank.pdf'))

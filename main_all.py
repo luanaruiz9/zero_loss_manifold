@@ -18,7 +18,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 #torch.set_default_device(device)
 print(device)
 
-np.random.seed(0)
+np.random.seed(10)
 
 channels = 1
 feats = 28
@@ -28,21 +28,22 @@ m = 6#int(sys.argv[1]) #6
 alpha = 0.1#float(sys.argv[2]) #0.01 
 sig = 0.05
 batch_size = 32#sys.argv[3] #32 #'all'
-low_data = False#str(sys.argv[4]) == 'True'
+low_data = True#str(sys.argv[4]) == 'True'
 if 'all' not in str(batch_size):
     batch_size = int(batch_size)
 lr = 0.001
 label_noise = True
 
-scaling = 0.5
+scaling = 1
 if low_data:
-    reduction_factor = scaling*(feats*feats-1)/60000
+    lr = 0.1*lr
+    reduction_factor = 0.9*scaling*(feats*feats)/60000
 else:
-    reduction_factor = scaling*5*(feats*feats-1)/60000
+    reduction_factor = 1.1*scaling*C*(m)*(feats*feats-1)/60000
 if label_noise:
-    thisFilename = 'mnist_label_noise_' + str(m) + '_' + str(alpha) + '_' + str(batch_size) # This is the general name of all related files
+    thisFilename = 'mnist_label_noise_' + str(low_data) + '_' + str(m) + '_' + str(alpha) + '_' + str(batch_size) # This is the general name of all related files
 else:
-    thisFilename = 'mnist_' + str(m) + '_' + str(alpha) + '_' + str(batch_size) # This is the general name of all related files
+    thisFilename = 'mnist_' + str(low_data) + '_' + str(m) + '_' + str(alpha) + '_' + str(batch_size) # This is the general name of all related files
 saveDirRoot = 'experiments' # In this case, relative location
 saveDir = os.path.join(saveDirRoot, thisFilename) 
 
@@ -69,7 +70,7 @@ transform = transforms.Compose(
     [transforms.ToTensor(),
      transforms.Normalize((0.5), (0.5))])
 
-n_epochs = 60
+n_epochs = 100
 
 val_ratio = 0.1
 trainset = torchvision.datasets.MNIST(root='./data', train=True,
@@ -458,25 +459,27 @@ fig.savefig(os.path.join(saveDir,'rrmse.pdf'))
 
 # Rank
 
-fig_rank, ax_rank = plt.subplots(1,1)
+fig_rank, ax_rank = plt.subplots(1,2)
 
 rank = []
-rank = []
-eigs = np.zeros(m,save_y_gnn.shape[0])
+eigs = np.zeros((m,save_y_gnn.shape[0]))
 for i in range(save_y_gnn.shape[0]):
     rank.append(np.linalg.matrix_rank(np.reshape(save_y_gnn[i],(m,-1)),tol=0.01))
-    _, L, _ = np.linalg.svd(np.reshape(save_y_gnn[i],(m,-1)))
-    eigs[:,i] = L[0:m]
+    #_, L, _ = np.linalg.svd(np.reshape(save_y_gnn[i],(m,-1)))
+    #eigs[:,i] = L[0:m]
+    aux_tensor = torch.tensor(np.reshape(save_y_gnn[i],(m,-1)))
+    aux_tensor = aux_tensor.to_sparse()
+    _, L,_ = torch.svd_lowrank(aux_tensor,q=m)
+    eigs[:,i] = L.cpu().numpy()
     
 save_dict = {'rank': rank}
 pkl.dump(save_dict,open(os.path.join(saveDir,'rank.p'),'wb'))
 
 for i in range(m):
-    ax_rank.plot(eigs[i], label='lam'+str(i+1))
+    ax_rank[0].plot(eigs[i]/eigs[0], label='lam'+str(i+1))
 
-plt.legend()    
-plt.xlabel("Epochs")
-plt.ylabel("Rank")
+ax_rank[0].legend()
+ax_rank[1].plot(rank)
     
 fig_rank.savefig(os.path.join(saveDir,'rank.png'))
 fig_rank.savefig(os.path.join(saveDir,'rank.pdf'))

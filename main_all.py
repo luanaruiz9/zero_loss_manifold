@@ -476,7 +476,8 @@ for i in range(save_y_gnn.shape[0]):
     U, L,_ = torch.svd_lowrank(aux_tensor,q=m)
     eigs[:,i] = L.cpu().numpy()
     U = U.cpu().numpy()
-    dots[:,i] = np.dot(U[:,0],U[:,i])
+    for j in range(m):
+        dots[j,i] = np.dot(U[:,0],U[:,j])
     
 save_dict = {'rank': rank}
 pkl.dump(save_dict,open(os.path.join(saveDir,'rank.p'),'wb'))

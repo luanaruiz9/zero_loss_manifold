@@ -12,23 +12,23 @@ from sklearn.linear_model import LinearRegression
 from sklearn.cluster import KMeans
 from tqdm import tqdm
 
-import dataset
+from dataset import MNISTFiltered
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 #torch.set_default_device(device)
 print(device)
 
-np.random.seed(18)
+np.random.seed(0)
 
 channels = 1
 feats = 28
-C = 10
+C = 2
 
-m = 10#int(sys.argv[1]) #6
+m = 4#int(sys.argv[1]) #6
 alpha = 0.1#float(sys.argv[2]) #0.01 
 sig = 0.2
 batch_size = 32#sys.argv[3] #32 #'all'
-low_data = False#str(sys.argv[4]) == 'True'
+low_data = True#str(sys.argv[4]) == 'True'
 if 'all' not in str(batch_size):
     batch_size = int(batch_size)
 lr = 0.001
@@ -75,7 +75,7 @@ else:
     n_epochs = 50
     
 val_ratio = 0.1
-trainset = torchvision.datasets.MNIST(root='./data', train=True,
+trainset = MNISTFiltered(root='./data', labels=[0,1], train=True,
                                         download=True, transform=transform)
 train_size = len(trainset)
 train_perm = torch.randperm(train_size)
@@ -88,12 +88,12 @@ if batch_size == 'all':
 print(batch_size)
 lr = np.sqrt(batch_size/32)*lr
 print(lr)
-val_interval = np.ceil(reduction_factor*1000/batch_size*32)
+val_interval = np.ceil(reduction_factor*200/batch_size*32)
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                           shuffle=True, num_workers=0)
 valloader = torch.utils.data.DataLoader(valset, batch_size=batch_size,
                                          shuffle=False, num_workers=0)
-testset = torchvision.datasets.MNIST(root='./data', train=False,
+testset = MNISTFiltered(root='./data', labels=[0,1], train=False,
                                        download=True, transform=transform)
 test_size = len(testset)
 testset = torch.utils.data.Subset(testset,
@@ -101,7 +101,7 @@ testset = torch.utils.data.Subset(testset,
 testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
                                          shuffle=False, num_workers=0)
 
-classes = ('0','1','2','3','4','5','6','7','8','9')
+classes = ('0','1')#,'2','3','4','5','6','7','8','9')
 
 ########################################################################
 # Let us show some of the training images, for fun.

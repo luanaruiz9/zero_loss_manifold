@@ -461,11 +461,11 @@ fig.savefig(os.path.join(saveDir,'rrmse.pdf'))
 
 # Rank
 
-fig_rank, ax_rank = plt.subplots(1,3)
+fig_rank, ax_rank = plt.subplots(1,2)
 
 rank = []
 eigs = np.zeros((m,save_y_gnn.shape[0]))
-dots = np.zeros((m,save_y_gnn.shape[0]))
+save_y_gnn = save_y_gnn[:,:,:,0]
 
 for i in range(save_y_gnn.shape[0]):
     rank.append(np.linalg.matrix_rank(np.reshape(save_y_gnn[i],(m,-1)),tol=0.01))
@@ -476,19 +476,15 @@ for i in range(save_y_gnn.shape[0]):
     U, L,_ = torch.svd_lowrank(aux_tensor,q=m)
     eigs[:,i] = L.cpu().numpy()
     U = U.cpu().numpy()
-    for j in range(m):
-        dots[j,i] = np.dot(U[:,0],U[:,j])
     
 save_dict = {'rank': rank}
 pkl.dump(save_dict,open(os.path.join(saveDir,'rank.p'),'wb'))
 
 for i in range(m):
     ax_rank[0].plot(eigs[i]/eigs[0], label='lam'+str(i+1))
-    ax_rank[1].plot(dots[i], label='lam'+str(i+1))
 
 ax_rank[0].legend()
-ax_rank[1].legend()
-ax_rank[2].plot(rank)
+ax_rank[1].plot(rank)
     
 fig_rank.savefig(os.path.join(saveDir,'rank.png'))
 fig_rank.savefig(os.path.join(saveDir,'rank.pdf'))

@@ -26,17 +26,18 @@ C = 2
 
 m = 4#int(sys.argv[1]) #6
 alpha = 0.1#float(sys.argv[2]) #0.01 
-sig = 0.2
-batch_size = 32#sys.argv[3] #32 #'all'
-low_data = True#str(sys.argv[4]) == 'True'
+sig = 0.0001
+batch_size = 'all'#sys.argv[3] #32 #'all'
+low_data = False#str(sys.argv[4]) == 'True'
 if 'all' not in str(batch_size):
     batch_size = int(batch_size)
-lr = 0.001
+lr = 0.00001 # remove a 0 for low data
 label_noise = True
 
 scaling = 1
 if low_data:
     reduction_factor = 0.9*scaling*(2*feats*feats)/60000
+    print(reduction_factor)
 else:
     reduction_factor = 1.1*scaling*C*(m)*(feats*feats-1)/60000
 if label_noise:
@@ -70,7 +71,7 @@ transform = transforms.Compose(
      transforms.Normalize((0.5), (0.5))])
 
 if low_data == True:
-    n_epochs = 150
+    n_epochs = 50
 else:
     n_epochs = 50
     

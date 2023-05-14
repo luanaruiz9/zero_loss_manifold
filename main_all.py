@@ -35,7 +35,7 @@ label_noise = True
 
 scaling = 1
 if low_data:
-    lr = 0.0001
+    lr = 0.00001
     reduction_factor = 0.9*scaling*(2*feats*feats)/60000
 else:
     lr = 0.00001

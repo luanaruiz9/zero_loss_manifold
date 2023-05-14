@@ -471,7 +471,7 @@ for i in range(m):
     rrmse = np.array(rrmse)
     save_rrmse.append(rrmse)
     print(rrmse[-1])
-    axs[int(i % 2),int(i % int(m/2))].plot(0 + x_axis, rrmse)
+    axs[int(i % 2),int(i % int(m/2))].plot(x_axis, rrmse)
     
 save_dict = {'rrmse': save_rrmse}
 pkl.dump(save_dict,open(os.path.join(saveDir,'rrmse.p'),'wb'))

@@ -297,7 +297,7 @@ fig, ax1 = plt.subplots()
 color = 'tab:red'
 ax1.set_xlabel('Training Steps')
 ax1.set_ylabel('Training Loss (MSE)')
-ax1.plot(x_axis[1:-2], loss_vec, color=color)
+ax1.plot(x_axis[1:-1], loss_vec, color=color)
 
 ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
 

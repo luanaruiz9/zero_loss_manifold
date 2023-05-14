@@ -11,11 +11,11 @@ import torchvision.transforms as transforms
 from sklearn.linear_model import LinearRegression
 from sklearn.cluster import KMeans
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 from dataset import MNISTFiltered
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-#torch.set_default_device(device)
 print(device)
 
 np.random.seed(0)
@@ -26,25 +26,24 @@ C = 2
 
 m = 12#int(sys.argv[1]) #6
 alpha = 0.1#float(sys.argv[2]) #0.01 
-sig = 0.0001
+sig = 0.01
 batch_size = 'all'#sys.argv[3] #32 #'all'
-low_data = False#str(sys.argv[4]) == 'True'
+low_data = True#str(sys.argv[4]) == 'True'
 if 'all' not in str(batch_size):
     batch_size = int(batch_size)
-lr = 0.00001 # remove a 0 for low data
-# SAVE LEARNING RATE
 label_noise = True
 
 scaling = 1
 if low_data:
+    lr = 0.0001
     reduction_factor = 0.9*scaling*(2*feats*feats)/60000
-    print(reduction_factor)
 else:
+    lr = 0.00001
     reduction_factor = 1.1*scaling*C*(m)*(feats*feats-1)/60000
 if label_noise:
-    thisFilename = 'mnist_label_noise_' + str(low_data) + '_' + str(m) + '_' + str(alpha) + '_' + str(batch_size) # This is the general name of all related files
+    thisFilename = 'binary_mnist_label_noise_' + str(low_data) + '_' + str(m) + '_' + str(alpha) + '_' + str(batch_size) # This is the general name of all related files
 else:
-    thisFilename = 'mnist_' + str(low_data) + '_' + str(m) + '_' + str(alpha) + '_' + str(batch_size) # This is the general name of all related files
+    thisFilename = 'binary_mnist_' + str(low_data) + '_' + str(m) + '_' + str(alpha) + '_' + str(batch_size) # This is the general name of all related files
 saveDirRoot = 'experiments' # In this case, relative location
 saveDir = os.path.join(saveDirRoot, thisFilename) 
 
@@ -85,34 +84,52 @@ valset = torch.utils.data.Subset(trainset,
                                    train_perm[0:int(val_ratio*reduction_factor*train_size)])
 trainset = torch.utils.data.Subset(trainset,
                                    train_perm[int(val_ratio*reduction_factor*train_size):int(reduction_factor*train_size)])
+val_size = len(valset)
+train_size = len(trainset)
 if batch_size == 'all':
-    batch_size = int(reduction_factor*train_size)-int(val_ratio*reduction_factor*train_size)
-print(batch_size)
+    batch_size = train_size
 lr = np.sqrt(batch_size/32)*lr
-print(lr)
-val_interval = np.ceil(reduction_factor*200/batch_size*32)
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                           shuffle=True, num_workers=0)
+val_interval = np.ceil(reduction_factor*200/batch_size*32)
 valloader = torch.utils.data.DataLoader(valset, batch_size=batch_size,
                                          shuffle=False, num_workers=0)
+
 testset = MNISTFiltered(root='./data', labels=[0,1], train=False,
                                        download=True, transform=transform)
 test_size = len(testset)
 testset = torch.utils.data.Subset(testset,
                                    torch.randperm(test_size)[0:int(reduction_factor*test_size)])
+test_size = len(testset)
 testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
                                          shuffle=False, num_workers=0)
 
 classes = ('0','1')#,'2','3','4','5','6','7','8','9')
 
+# Save info
+
+hyperparameter_dict = {'nb_activations': str(m), 
+                       'label_noise_flag': str(label_noise),
+                       'alpha': str(alpha),
+                       'sigma': str(sig),
+                       'lr': str(lr),
+                       'train_size': str(train_size),
+                       'batch_size': str(batch_size),
+                       'val_size': str(val_size),
+                       'val_interval': str(val_interval),
+                       'test_size': str(test_size),
+                       'data dimension': str(channels*feats*feats),
+                       'nb_params_per_activ': str(channels*feats*feats*C)
+                       }
+
+with open("hyperparameters.txt", 'w') as f: 
+    for key, value in hyperparameter_dict.items(): 
+        f.write('%s:%s\n' % (key, value))
+
 ########################################################################
 # Let us show some of the training images, for fun.
 
-import matplotlib.pyplot as plt
-import numpy as np
-
 # functions to show an image
-
 
 def imshow(img):
     img = img / 2 + 0.5     # unnormalize
@@ -188,10 +205,12 @@ scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
 loss_vec = []
 weights_list = []
 test_accs = []
+x_axis = []
 acc_old = 0
 save_labels = torch.empty(0, device=device)
 save_x = torch.empty(0, device=device)
 
+step_count = 0
 for epoch in range(n_epochs):  # loop over the dataset multiple times
     running_loss = 0.0
     for i, data in tqdm(enumerate(trainloader, 0)):
@@ -225,6 +244,8 @@ for epoch in range(n_epochs):  # loop over the dataset multiple times
         # print statistics
         running_loss += loss.item()
         if i % val_interval == val_interval-1:    # print every 100 mini-batches
+            step_count = step_count + i
+            x_axis.append(step_count)
             weights = []
             for weight in list(net.parameters()):
                 weights.append(weight.detach().clone())
@@ -272,15 +293,15 @@ weights_list.append(weights)
 fig, ax1 = plt.subplots()
 
 color = 'tab:red'
-ax1.set_xlabel('Epochs')
+ax1.set_xlabel('Training Steps')
 ax1.set_ylabel('Training Loss (MSE)')
-ax1.plot(loss_vec, color=color)
+ax1.plot(x_axis, loss_vec, color=color)
 
 ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
 
 color = 'tab:blue'
 ax2.set_ylabel('Test accuracy (%)')  # we already handled the x-label with ax1
-ax2.plot(test_accs, color=color)
+ax2.plot(x_axis, test_accs, color=color)
 
 fig.tight_layout()
 
@@ -448,14 +469,14 @@ for i in range(m):
     rrmse = np.array(rrmse)
     save_rrmse.append(rrmse)
     print(rrmse[-1])
-    axs[int(i % 2),int(i % int(m/2))].plot(rrmse)
+    axs[int(i % 2),int(i % int(m/2))].plot(x_axis, rrmse)
     
 save_dict = {'rrmse': save_rrmse}
 pkl.dump(save_dict,open(os.path.join(saveDir,'rrmse.p'),'wb'))
 
 fig.add_subplot(111, frameon=False)
 plt.tick_params(labelcolor='none', which='both', top=False, bottom=False, left=False, right=False)
-plt.xlabel("Epochs")
+plt.xlabel("Training Steps")
 plt.ylabel("RRMSE (%)")
     
 fig.savefig(os.path.join(saveDir,'rrmse.png'))
@@ -463,7 +484,7 @@ fig.savefig(os.path.join(saveDir,'rrmse.pdf'))
 
 # Rank
 
-fig_rank, ax_rank = plt.subplots(1,2)
+fig_rank, ax_rank = plt.subplots(1,1)
 
 rank = []
 eigs = np.zeros((m,save_y_gnn.shape[0]))
@@ -479,14 +500,14 @@ for i in range(save_y_gnn.shape[0]):
     eigs[:,i] = L.cpu().numpy()
     U = U.cpu().numpy()
     
-save_dict = {'rank': rank}
-pkl.dump(save_dict,open(os.path.join(saveDir,'rank.p'),'wb'))
+save_dict = {'eigs': eigs}
+pkl.dump(save_dict,open(os.path.join(saveDir,'eigs.p'),'wb'))
 
 for i in range(m):
-    ax_rank[0].plot(eigs[i]/eigs[0], label='lam'+str(i+1))
-
-ax_rank[0].legend()
-ax_rank[1].plot(rank)
+    ax_rank.plot(x_axis, eigs[i]/eigs[0], label='lam'+str(i+1))
+#ax_rank.legend()
+plt.xlabel("Training Steps")
+plt.ylabel("Singular Values")
     
 fig_rank.savefig(os.path.join(saveDir,'rank.png'))
 fig_rank.savefig(os.path.join(saveDir,'rank.pdf'))

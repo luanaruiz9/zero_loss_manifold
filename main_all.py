@@ -24,26 +24,26 @@ channels = 1
 feats = 28
 C = 2
 
-m = 12#int(sys.argv[1]) #6
-alpha = 0.1#float(sys.argv[2]) #0.01 
-sig = 0.01
+m = int(sys.argv[1]) #4, 8, 12, 16
+alpha = float(sys.argv[2]) #0, 0.01, 0.1
+sig = 0.1
 batch_size = 'all'#sys.argv[3] #32 #'all'
-low_data = True#str(sys.argv[4]) == 'True'
+low_data = str(sys.argv[3]) == 'True'
 if 'all' not in str(batch_size):
     batch_size = int(batch_size)
 label_noise = True
+scaling = float(sys.argv[4]) #0.5, 1, 2, 3
 
-scaling = 1
 if low_data:
-    lr = 0.00001
-    reduction_factor = 0.9*scaling*(2*feats*feats)/60000
+    lr = 0.00005
+    reduction_factor = 0.9*scaling*(feats*feats)/12000
 else:
-    lr = 0.00001
-    reduction_factor = 1.1*scaling*C*(m)*(feats*feats-1)/60000
+    lr = 0.0001
+    reduction_factor = scaling*C*(m)*(feats*feats-1)/12000
 if label_noise:
-    thisFilename = 'binary_mnist_label_noise_' + str(low_data) + '_' + str(m) + '_' + str(alpha) + '_' + str(batch_size) # This is the general name of all related files
+    thisFilename = 'binary_mnist_label_noise_low_data=' + str(low_data) + '_m=' + str(m) + '_a=' + str(alpha) + '_sc=' + str(scaling) # This is the general name of all related files
 else:
-    thisFilename = 'binary_mnist_' + str(low_data) + '_' + str(m) + '_' + str(alpha) + '_' + str(batch_size) # This is the general name of all related files
+    thisFilename = 'binary_mnist_low_data=' + str(low_data) + '_m=' + str(m) + '_a=' + str(alpha) + '_sc=' + str(scaling) # This is the general name of all related files
 saveDirRoot = 'experiments' # In this case, relative location
 saveDir = os.path.join(saveDirRoot, thisFilename) 
 
@@ -71,9 +71,9 @@ transform = transforms.Compose(
      transforms.Normalize((0.5), (0.5))])
 
 if low_data == True:
-    n_epochs = 200
+    n_epochs = 100
 else:
-    n_epochs = 200
+    n_epochs = 100
     
 val_ratio = 0.1
 trainset = MNISTFiltered(root='./data', labels=[0,1], train=True,
@@ -88,10 +88,9 @@ val_size = len(valset)
 train_size = len(trainset)
 if batch_size == 'all':
     batch_size = train_size
-lr = np.sqrt(batch_size/32)*lr
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                           shuffle=True, num_workers=0)
-val_interval = np.ceil(reduction_factor*200/batch_size*32)
+val_interval = 1
 valloader = torch.utils.data.DataLoader(valset, batch_size=batch_size,
                                          shuffle=False, num_workers=0)
 
@@ -122,7 +121,7 @@ hyperparameter_dict = {'nb_activations': str(m),
                        'nb_params_per_activ': str(channels*feats*feats*C)
                        }
 
-with open("hyperparameters.txt", 'w') as f: 
+with open(os.path.join(saveDir,"hyperparameters.txt"), 'w') as f: 
     for key, value in hyperparameter_dict.items(): 
         f.write('%s:%s\n' % (key, value))
 
@@ -290,7 +289,7 @@ weights = []
 for weight in list(net.parameters()):
     weights.append(weight.detach().clone())
 weights_list.append(weights)
-x_axis.append(n_epochs*train_size-1)
+x_axis.append(x_axis[-1]+val_interval)
 
 fig, ax1 = plt.subplots()
 

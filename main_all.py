@@ -303,7 +303,7 @@ ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
 
 color = 'tab:blue'
 ax2.set_ylabel('Test accuracy (%)')  # we already handled the x-label with ax1
-ax2.plot(x_axis, test_accs, color=color)
+ax2.plot(x_axis[1:-1], test_accs, color=color)
 
 fig.tight_layout()
 

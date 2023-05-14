@@ -35,7 +35,7 @@ label_noise = True
 
 scaling = 1
 if low_data:
-    lr = 0.0001
+    lr = 0.00001
     reduction_factor = 0.9*scaling*(2*feats*feats)/60000
 else:
     lr = 0.00001
@@ -211,6 +211,7 @@ save_labels = torch.empty(0, device=device)
 save_x = torch.empty(0, device=device)
 
 step_count = 0
+x_axis = [step_count]
 for epoch in range(n_epochs):  # loop over the dataset multiple times
     running_loss = 0.0
     for i, data in tqdm(enumerate(trainloader, 0)):
@@ -244,7 +245,7 @@ for epoch in range(n_epochs):  # loop over the dataset multiple times
         # print statistics
         running_loss += loss.item()
         if i % val_interval == val_interval-1:    # print every 100 mini-batches
-            step_count = step_count + i
+            step_count = step_count + val_interval 
             x_axis.append(step_count)
             weights = []
             for weight in list(net.parameters()):
@@ -289,13 +290,14 @@ weights = []
 for weight in list(net.parameters()):
     weights.append(weight.detach().clone())
 weights_list.append(weights)
+x_axis.append(n_epochs*train_size-1)
 
 fig, ax1 = plt.subplots()
 
 color = 'tab:red'
 ax1.set_xlabel('Training Steps')
 ax1.set_ylabel('Training Loss (MSE)')
-ax1.plot(x_axis, loss_vec, color=color)
+ax1.plot(x_axis[1:-2], loss_vec, color=color)
 
 ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
 
@@ -469,7 +471,7 @@ for i in range(m):
     rrmse = np.array(rrmse)
     save_rrmse.append(rrmse)
     print(rrmse[-1])
-    axs[int(i % 2),int(i % int(m/2))].plot(x_axis, rrmse)
+    axs[int(i % 2),int(i % int(m/2))].plot(0 + x_axis, rrmse)
     
 save_dict = {'rrmse': save_rrmse}
 pkl.dump(save_dict,open(os.path.join(saveDir,'rrmse.p'),'wb'))
@@ -487,7 +489,7 @@ fig.savefig(os.path.join(saveDir,'rrmse.pdf'))
 fig_rank, ax_rank = plt.subplots(1,1)
 
 rank = []
-eigs = np.zeros((m,save_y_gnn.shape[0]))
+eigs = np.zeros((m, save_y_gnn.shape[0]))
 save_y_gnn = save_y_gnn[:,:,save_labels[:,0].cpu().numpy()==1,0]
 
 for i in range(save_y_gnn.shape[0]):

@@ -24,7 +24,7 @@ channels = 1
 feats = 28
 C = 2
 
-m = 4#int(sys.argv[1]) #6
+m = 12#int(sys.argv[1]) #6
 alpha = 0.1#float(sys.argv[2]) #0.01 
 sig = 0.0001
 batch_size = 'all'#sys.argv[3] #32 #'all'
@@ -32,6 +32,7 @@ low_data = False#str(sys.argv[4]) == 'True'
 if 'all' not in str(batch_size):
     batch_size = int(batch_size)
 lr = 0.00001 # remove a 0 for low data
+# SAVE LEARNING RATE
 label_noise = True
 
 scaling = 1
@@ -71,9 +72,9 @@ transform = transforms.Compose(
      transforms.Normalize((0.5), (0.5))])
 
 if low_data == True:
-    n_epochs = 50
+    n_epochs = 200
 else:
-    n_epochs = 50
+    n_epochs = 200
     
 val_ratio = 0.1
 trainset = MNISTFiltered(root='./data', labels=[0,1], train=True,
@@ -175,7 +176,7 @@ import torch.optim as optim
 
 criterion = nn.MSELoss()
 optimizer = optim.SGD(net.parameters(), lr=lr)#, weight_decay=0.0005)
-scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=20, gamma=0.1)
+scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
 
 ########################################################################
 # 4. Train the network

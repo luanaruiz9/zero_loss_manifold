@@ -35,10 +35,10 @@ label_noise = True
 scaling = float(sys.argv[4]) #0.5, 1, 2, 3
 
 if low_data:
-    lr = 0.00005
+    lr = 0.000001
     reduction_factor = 0.9*scaling*(feats*feats)/12000
 else:
-    lr = 0.0001
+    lr = 0.00001
     reduction_factor = scaling*C*(m)*(feats*feats-1)/12000
 if label_noise:
     thisFilename = 'binary_mnist_label_noise_low_data=' + str(low_data) + '_m=' + str(m) + '_a=' + str(alpha) + '_sc=' + str(scaling) # This is the general name of all related files
@@ -71,9 +71,9 @@ transform = transforms.Compose(
      transforms.Normalize((0.5), (0.5))])
 
 if low_data == True:
-    n_epochs = 100
+    n_epochs = 500
 else:
-    n_epochs = 100
+    n_epochs = 500
     
 val_ratio = 0.1
 trainset = MNISTFiltered(root='./data', labels=[0,1], train=True,
@@ -167,7 +167,7 @@ class Net(nn.Module):
         fc = []
         for i in range(m):
             this_layer = nn.Linear(channels*feats*feats, C, bias=False, device=device)
-            nn.init.ones_(this_layer.weight)
+            nn.init.orthogonal_(this_layer.weight)
             fc.append(this_layer)
         self.fc = nn.ParameterList(fc)
 
@@ -194,7 +194,7 @@ import torch.optim as optim
 
 criterion = nn.MSELoss()
 optimizer = optim.SGD(net.parameters(), lr=lr)#, weight_decay=0.0005)
-scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
+scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=200, gamma=0.5)
 
 ########################################################################
 # 4. Train the network

@@ -41,7 +41,7 @@ else:
     lr = 0.001
     reduction_factor = (1/scaling)*C*(m)*(feats*feats-1)/12000
 if label_noise:
-    thisFilename = 'binary_mnist_label_noise_low_data=' + str(low_data) + '_m=' + str(m) + '_a=' + str(alpha) + '_sc=' + str(scaling) # This is the general name of all related files
+    thisFilename = 'binary_cifar_label_noise_low_data=' + str(low_data) + '_m=' + str(m) + '_a=' + str(alpha) + '_sc=' + str(scaling) # This is the general name of all related files
 else:
     thisFilename = 'binary_mnist_low_data=' + str(low_data) + '_m=' + str(m) + '_a=' + str(alpha) + '_sc=' + str(scaling) # This is the general name of all related files
 saveDirRoot = 'experiments' # In this case, relative location

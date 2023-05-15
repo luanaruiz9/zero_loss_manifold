@@ -526,7 +526,7 @@ fig.savefig(os.path.join(saveDir,'mean_train_test_' + str(r) + '.pdf'))
 # Rank
 
 all_eigs = np.vstack(all_eigs)
-all_eigs = all_eigs/all_eigs[:,0]
+all_eigs = all_eigs/np.tile(all_eigs[:,0],(1,all_eigs.shape[1]))
 mean_eigs = np.mean(all_eigs,axis=0)
 std_eigs = 0.5*np.std(all_eigs,axis=0)
 

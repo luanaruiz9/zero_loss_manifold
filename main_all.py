@@ -166,7 +166,9 @@ class Net(nn.Module):
         self.alpha = alpha
         fc = []
         for i in range(m):
-            fc.append(nn.Linear(channels*feats*feats, C, bias=False, device=device))
+            this_layer = nn.Linear(channels*feats*feats, C, bias=False, device=device)
+            nn.init.ones_(this_layer.weight)
+            fc.append(this_layer)
         self.fc = nn.ParameterList(fc)
 
     def forward(self, x):

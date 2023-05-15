@@ -24,7 +24,7 @@ channels = 3
 feats = 32
 C = 2
 
-m = 4# int(sys.argv[1]) #4, 8, 12, 16
+m = 6# int(sys.argv[1]) #4, 8, 12, 16
 alpha = 0.1#float(sys.argv[2]) #0, 0.01, 0.1
 sig = 0.1
 batch_size = 'all'#sys.argv[3] #32 #'all'
@@ -35,11 +35,11 @@ label_noise = True
 scaling = 1#float(sys.argv[4]) #0.5, 1, 2, 3
 
 if low_data:
-    lr = 0.001
-    reduction_factor = 0.9*scaling*(feats*feats)/12000
+    lr = 0.0001#0.001
+    reduction_factor = 0.9*scaling*(feats*feats)/10000
 else:
-    lr = 0.001
-    reduction_factor = (1/scaling)*C*(m)*(feats*feats-1)/12000
+    lr = 0.0001
+    reduction_factor = (1/scaling)*C*(m)*(feats*feats-1)/10000
 if label_noise:
     thisFilename = 'binary_cifar_label_noise_low_data=' + str(low_data) + '_m=' + str(m) + '_a=' + str(alpha) + '_sc=' + str(scaling) # This is the general name of all related files
 else:
@@ -73,7 +73,7 @@ transform = transforms.Compose(
 if low_data == True:
     n_epochs = 500
 else:
-    n_epochs = 500
+    n_epochs = 200
     
 val_ratio = 0.1
 trainset = CIFARFiltered(root='./data', labels =[3,5], train=True,
@@ -91,7 +91,7 @@ if batch_size == 'all':
     batch_size = train_size
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                           shuffle=True, num_workers=0)
-val_interval = 1
+val_interval = 10
 valloader = torch.utils.data.DataLoader(valset, batch_size=val_size,
                                          shuffle=False, num_workers=0)
 
@@ -168,7 +168,7 @@ class Net(nn.Module):
         fc = []
         for i in range(m):
             this_layer = nn.Linear(channels*feats*feats, C, bias=False, device=device)
-            #nn.init.orthogonal_(this_layer.weight)
+            nn.init.orthogonal_(this_layer.weight)
             fc.append(this_layer)
         self.fc = nn.ParameterList(fc)
 
@@ -214,8 +214,8 @@ save_x = torch.empty(0, device=device)
 
 step_count = 0
 x_axis = [step_count]
+running_loss = 0
 for epoch in range(n_epochs):  # loop over the dataset multiple times
-    running_loss = 0.0
     for i, data in tqdm(enumerate(trainloader, 0)):
         if epoch == 0 and i == 0:
             weights = []
@@ -246,7 +246,7 @@ for epoch in range(n_epochs):  # loop over the dataset multiple times
 
         # print statistics
         running_loss += loss.item()
-        if i % val_interval == val_interval-1:    # print every 100 mini-batches
+        if epoch % val_interval == val_interval-1:    # print every 100 mini-batches
             step_count = step_count + val_interval 
             x_axis.append(step_count)
             weights = []
@@ -473,7 +473,7 @@ for i in range(m):
     rrmse = np.array(rrmse)
     save_rrmse.append(rrmse)
     print(rrmse[-1])
-    axs[int(i % 2),int(i % int(m/2))].plot(x_axis, rrmse)
+    #axs[int(i % 2),int(i % int(m/2))].plot(x_axis, rrmse)
     
 save_dict = {'rrmse': save_rrmse}
 pkl.dump(save_dict,open(os.path.join(saveDir,'rrmse.p'),'wb'))

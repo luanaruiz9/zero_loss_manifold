@@ -76,14 +76,14 @@ else:
     n_epochs = 20
     
 val_ratio = 0.1
-trainset = CIFARFiltered(root='./data', labels =[3,5], train=True,
+old_trainset = CIFARFiltered(root='./data', labels =[3,5], train=True,
                                         download=True, transform=transform)
-old_train_size = len(trainset)
+old_train_size = len(old_trainset)
 train_size = int(reduction_factor*old_train_size)
-testset = CIFARFiltered(root='./data', labels=[3,5], train=False,
+old_testset = CIFARFiltered(root='./data', labels=[3,5], train=False,
                                        download=True, transform=transform)
-old_test_size = len(testset)
-test_size = int(reduction_factor*len(testset))
+old_test_size = len(old_testset)
+test_size = int(reduction_factor*len(old_testset))
 
 # Save info
 
@@ -113,9 +113,9 @@ for r in range(n_realizations):
 
     
     train_perm = torch.randperm(old_train_size)[0:train_size]
-    valset = torch.utils.data.Subset(trainset,
+    valset = torch.utils.data.Subset(old_trainset,
                                        train_perm[0:int(val_ratio*train_size)])
-    trainset = torch.utils.data.Subset(trainset,
+    trainset = torch.utils.data.Subset(old_trainset,
                                        train_perm[int(val_ratio*train_size):train_size])
     train_size = len(trainset)
     val_size = len(valset)
@@ -127,7 +127,7 @@ for r in range(n_realizations):
     valloader = torch.utils.data.DataLoader(valset, batch_size=val_size,
                                              shuffle=False, num_workers=0)
     
-    testset = torch.utils.data.Subset(testset,
+    testset = torch.utils.data.Subset(old_testset,
                                        torch.randperm(old_test_size)[0:test_size])
     testloader = torch.utils.data.DataLoader(testset, batch_size=test_size,
                                              shuffle=False, num_workers=0)

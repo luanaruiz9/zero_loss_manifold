@@ -486,14 +486,16 @@ for r in range(n_realizations):
     fig_rank.savefig(os.path.join(saveDir,'rank_' + str(r) + '.png'))
     fig_rank.savefig(os.path.join(saveDir,'rank_' + str(r) + '.pdf'))
 
+# Train loss and test accuracy
+
 all_loss_vecs = np.array(all_loss_vecs)
 all_test_accs = np.array(all_test_accs)
 
 mean_loss = np.mean(all_loss_vecs, axis=0)
-std_loss =  np.std(all_loss_vecs, axis=0)
+std_loss =  0.5*np.std(all_loss_vecs, axis=0)
 
 mean_acc = np.mean(all_test_accs, axis=0)
-std_acc =  np.std(all_test_accs, axis=0)
+std_acc =  0.5*np.std(all_test_accs, axis=0)
 
 fig, ax1 = plt.subplots()
 
@@ -502,7 +504,7 @@ ax1.set_xlabel('Training Steps')
 ax1.set_ylabel('Training Loss (MSE)')
 ax1.fill_between(x_axis[1:-1], mean_loss-std_loss, 
                  mean_loss+std_loss,
-                 color=color, alpha=0.75)
+                 color=color, alpha=0.1)
 ax1.plot(x_axis[1:-1], mean_loss, color=color)
 
 ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
@@ -511,7 +513,7 @@ color = 'tab:blue'
 ax2.set_ylabel('Test accuracy (%)')  # we already handled the x-label with ax1
 ax2.fill_between(x_axis[1:-1], mean_acc-std_acc,
                  mean_acc + std_acc,
-                 color=color, alpha=0.75)
+                 color=color, alpha=0.1)
 ax2.plot(x_axis[1:-1], mean_acc, color=color)
 
 fig.tight_layout()
@@ -520,3 +522,26 @@ fig.tight_layout()
 
 fig.savefig(os.path.join(saveDir,'mean_train_test_' + str(r) + '.png'))
 fig.savefig(os.path.join(saveDir,'mean_train_test_' + str(r) + '.pdf'))
+
+# Rank
+
+all_eigs = np.vstack(all_eigs)
+all_eigs = all_eigs/all_eigs[:,0]
+mean_eigs = np.mean(all_eigs,axis=0)
+std_eigs = 0.5*np.std(all_eigs,axis=0)
+
+fig_rank, ax_rank = plt.subplots(1,1)
+
+cmap = plt.cm.get_cmap('Spectral')
+color_code = np.linspace(0,1,m) 
+
+for i in range(m):
+    ax_rank.fill_between(x_axis, mean_eigs[i]-std_eigs[i], mean_eigs[i]+std_eigs[i],
+                         color=cmap(color_code[i]),alpha=0.1)
+    ax_rank.plot(x_axis, mean_eigs[i], label='lam'+str(i+1),color=cmap(color_code[i]))
+#ax_rank.legend()
+plt.xlabel("Training Steps")
+plt.ylabel("Singular Values")
+    
+fig_rank.savefig(os.path.join(saveDir,'mean_rank_' + str(r) + '.png'))
+fig_rank.savefig(os.path.join(saveDir,'mean_rank_' + str(r) + '.pdf'))

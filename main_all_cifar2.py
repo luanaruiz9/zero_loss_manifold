@@ -489,24 +489,30 @@ for r in range(n_realizations):
 all_loss_vecs = np.array(all_loss_vecs)
 all_test_accs = np.array(all_test_accs)
 
+mean_loss = np.mean(all_loss_vecs, axis=0)
+std_loss =  np.std(all_loss_vecs, axis=0)
+
+mean_acc = np.mean(all_test_accs, axis=0)
+std_acc =  np.std(all_test_accs, axis=0)
+
 fig, ax1 = plt.subplots()
 
 color = 'tab:red'
 ax1.set_xlabel('Training Steps')
 ax1.set_ylabel('Training Loss (MSE)')
-ax1.fill_between(x_axis[1:-1], np.mean(all_loss_vecs)-np.std(all_loss_vecs), 
-                 np.mean(all_loss_vecs)+np.std(all_loss_vecs),
+ax1.fill_between(x_axis[1:-1], mean_loss-std_loss, 
+                 mean_loss+std_loss,
                  color=color, alpha=0.75)
-ax1.plot(x_axis[1:-1], np.mean(all_loss_vecs), color=color)
+ax1.plot(x_axis[1:-1], mean_loss, color=color)
 
 ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
 
 color = 'tab:blue'
 ax2.set_ylabel('Test accuracy (%)')  # we already handled the x-label with ax1
-ax2.fill_between(x_axis[1:-1], np.mean(all_test_accs)-np.std(all_test_accs), 
-                 np.mean(all_test_accs)+np.std(all_test_accs),
+ax2.fill_between(x_axis[1:-1], mean_acc-std_acc,
+                 mean_acc + std_acc,
                  color=color, alpha=0.75)
-ax2.plot(x_axis[1:-1], np.mean(all_test_accs), color=color)
+ax2.plot(x_axis[1:-1], mean_acc, color=color)
 
 fig.tight_layout()
 

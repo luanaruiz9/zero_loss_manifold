@@ -39,7 +39,7 @@ if low_data:
     reduction_factor = 0.9*scaling*(feats*feats)/12000
 else:
     lr = 0.00001
-    reduction_factor = scaling*C*(m)*(feats*feats-1)/12000
+    reduction_factor = (1/scaling)*C*(m)*(feats*feats-1)/12000
 if label_noise:
     thisFilename = 'binary_mnist_label_noise_low_data=' + str(low_data) + '_m=' + str(m) + '_a=' + str(alpha) + '_sc=' + str(scaling) # This is the general name of all related files
 else:
@@ -78,29 +78,29 @@ else:
 val_ratio = 0.1
 trainset = MNISTFiltered(root='./data', labels=[0,1], train=True,
                                         download=True, transform=transform)
-train_size = len(trainset)
-train_perm = torch.randperm(train_size)
+old_train_size = len(trainset)
+train_size = int(reduction_factor*old_train_size)
+train_perm = torch.randperm(old_train_size)[0:train_size]
 valset = torch.utils.data.Subset(trainset,
-                                   train_perm[0:int(val_ratio*reduction_factor*train_size)])
+                                   train_perm[0:int(val_ratio*train_size)])
 trainset = torch.utils.data.Subset(trainset,
-                                   train_perm[int(val_ratio*reduction_factor*train_size):int(reduction_factor*train_size)])
+                                   train_perm[int(val_ratio*train_size):train_size])
 val_size = len(valset)
-train_size = len(trainset)
 if batch_size == 'all':
     batch_size = train_size
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                           shuffle=True, num_workers=0)
 val_interval = 1
-valloader = torch.utils.data.DataLoader(valset, batch_size=batch_size,
+valloader = torch.utils.data.DataLoader(valset, batch_size=val_size,
                                          shuffle=False, num_workers=0)
 
 testset = MNISTFiltered(root='./data', labels=[0,1], train=False,
                                        download=True, transform=transform)
-test_size = len(testset)
+old_test_size = len(testset)
+test_size = int(reduction_factor*len(testset))
 testset = torch.utils.data.Subset(testset,
-                                   torch.randperm(test_size)[0:int(reduction_factor*test_size)])
-test_size = len(testset)
-testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
+                                   torch.randperm(old_test_size)[0:test_size])
+testloader = torch.utils.data.DataLoader(testset, batch_size=test_size,
                                          shuffle=False, num_workers=0)
 
 classes = ('0','1')#,'2','3','4','5','6','7','8','9')

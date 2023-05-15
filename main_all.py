@@ -85,6 +85,7 @@ valset = torch.utils.data.Subset(trainset,
                                    train_perm[0:int(val_ratio*train_size)])
 trainset = torch.utils.data.Subset(trainset,
                                    train_perm[int(val_ratio*train_size):train_size])
+train_size = len(trainset)
 val_size = len(valset)
 if batch_size == 'all':
     batch_size = train_size

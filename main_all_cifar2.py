@@ -191,7 +191,8 @@ for r in range(n_realizations):
     loss_vec = []
     weights_list = []
     test_accs = []
-    x_axis = []
+    if r == 0:
+        x_axis = []
     acc_old = 0
     save_labels = torch.empty(0, device=device)
     save_x = torch.empty(0, device=device)
@@ -282,7 +283,8 @@ for r in range(n_realizations):
     for weight in list(net.parameters()):
         weights.append(weight.detach().clone())
     weights_list.append(weights)
-    x_axis.append(x_axis[-1]+val_interval)
+    if r == 0:
+        x_axis.append(x_axis[-1]+val_interval)
     
     fig, ax1 = plt.subplots()
     

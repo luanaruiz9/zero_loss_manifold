@@ -283,21 +283,19 @@ for r in range(n_realizations):
     for weight in list(net.parameters()):
         weights.append(weight.detach().clone())
     weights_list.append(weights)
-    if r == 0:
-        x_axis.append(x_axis[-1]+val_interval)
     
     fig, ax1 = plt.subplots()
     
     color = 'tab:red'
     ax1.set_xlabel('Training Steps')
     ax1.set_ylabel('Training Loss (MSE)')
-    ax1.plot(x_axis[1:-1], loss_vec, color=color)
+    ax1.plot(x_axis[1:], loss_vec, color=color)
     
     ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
     
     color = 'tab:blue'
     ax2.set_ylabel('Test accuracy (%)')  # we already handled the x-label with ax1
-    ax2.plot(x_axis[1:-1], test_accs, color=color)
+    ax2.plot(x_axis[1:], test_accs, color=color)
     
     fig.tight_layout()
     
@@ -478,7 +476,7 @@ for r in range(n_realizations):
     pkl.dump(save_dict,open(os.path.join(saveDir,'eigs_' + str(r) + '.p'),'wb'))
     
     for i in range(m):
-        ax_rank.plot(x_axis, eigs[i]/eigs[0], label='lam'+str(i+1))
+        ax_rank.plot(x_axis, eigs[i,0:-1]/eigs[0,0:-1], label='lam'+str(i+1))
     #ax_rank.legend()
     plt.xlabel("Training Steps")
     plt.ylabel("Singular Values")
@@ -502,19 +500,19 @@ fig, ax1 = plt.subplots()
 color = 'tab:red'
 ax1.set_xlabel('Training Steps')
 ax1.set_ylabel('Training Loss (MSE)')
-ax1.fill_between(x_axis[1:-1], mean_loss-std_loss, 
+ax1.fill_between(x_axis[1:], mean_loss-std_loss, 
                  mean_loss+std_loss,
                  color=color, alpha=0.1)
-ax1.plot(x_axis[1:-1], mean_loss, color=color)
+ax1.plot(x_axis[1:], mean_loss, color=color)
 
 ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
 
 color = 'tab:blue'
 ax2.set_ylabel('Test accuracy (%)')  # we already handled the x-label with ax1
-ax2.fill_between(x_axis[1:-1], mean_acc-std_acc,
+ax2.fill_between(x_axis[1:], mean_acc-std_acc,
                  mean_acc + std_acc,
                  color=color, alpha=0.1)
-ax2.plot(x_axis[1:-1], mean_acc, color=color)
+ax2.plot(x_axis[1:], mean_acc, color=color)
 
 fig.tight_layout()
 
@@ -537,9 +535,9 @@ cmap = plt.cm.get_cmap('Spectral')
 color_code = np.linspace(0,1,m) 
 
 for i in range(m):
-    ax_rank.fill_between(x_axis, mean_eigs[i]-std_eigs[i], mean_eigs[i]+std_eigs[i],
+    ax_rank.fill_between(x_axis, mean_eigs[i,0:-1]-std_eigs[i,0:-1], mean_eigs[i,0:-1]+std_eigs[i,0:-1],
                          color=cmap(color_code[i]),alpha=0.1)
-    ax_rank.plot(x_axis, mean_eigs[i], label='lam'+str(i+1),color=cmap(color_code[i]))
+    ax_rank.plot(x_axis, mean_eigs[i,0:-1], label='lam'+str(i+1),color=cmap(color_code[i]))
 #ax_rank.legend()
 plt.xlabel("Training Steps")
 plt.ylabel("Singular Values")

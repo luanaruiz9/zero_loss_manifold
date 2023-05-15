@@ -24,15 +24,15 @@ channels = 3
 feats = 32
 C = 2
 
-m = 6# int(sys.argv[1]) #4, 8, 12, 16
-alpha = 0.1#float(sys.argv[2]) #0, 0.01, 0.1
+m = int(sys.argv[1]) #4, 8, 12, 16
+alpha = float(sys.argv[2]) #0, 0.01, 0.1
 sig = 0.1
 batch_size = 'all'#sys.argv[3] #32 #'all'
-low_data = True#str(sys.argv[3]) == 'True'
+low_data = str(sys.argv[3]) == 'True'
 if 'all' not in str(batch_size):
     batch_size = int(batch_size)
 label_noise = True
-scaling = 1#float(sys.argv[4]) #0.5, 1, 2, 3
+scaling = float(sys.argv[4]) #0.5, 1, 2, 3
 
 if low_data:
     lr = 0.0001#0.001
@@ -71,9 +71,9 @@ transform = transforms.Compose(
          transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
 
 if low_data == True:
-    n_epochs = 20
+    n_epochs = 300
 else:
-    n_epochs = 20
+    n_epochs = 300
     
 val_ratio = 0.1
 old_trainset = CIFARFiltered(root='./data', labels =[3,5], train=True,

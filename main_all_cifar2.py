@@ -123,7 +123,7 @@ for r in range(n_realizations):
         batch_size = train_size
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                               shuffle=True, num_workers=0)
-    val_interval = 10
+    val_interval = 5
     valloader = torch.utils.data.DataLoader(valset, batch_size=val_size,
                                              shuffle=False, num_workers=0)
     
@@ -198,8 +198,8 @@ for r in range(n_realizations):
     save_x = torch.empty(0, device=device)
     
     if r == 0:
-        step_count = 0
-        x_axis = [step_count]
+        step_count = -val_interval + 1
+        x_axis = []
     running_loss = 0
     for epoch in range(n_epochs):  # loop over the dataset multiple times
         for i, data in tqdm(enumerate(trainloader, 0)):
@@ -232,7 +232,7 @@ for r in range(n_realizations):
     
             # print statistics
             running_loss += loss.item()
-            if epoch % val_interval == val_interval-1:    # print every 100 mini-batches
+            if epoch % val_interval == val_interval - 1 or (epoch == 1 and i == 0):    # print every 100 mini-batches
                 if r == 0:
                     step_count = step_count + val_interval 
                     x_axis.append(step_count)
@@ -240,9 +240,13 @@ for r in range(n_realizations):
                 for weight in list(net.parameters()):
                     weights.append(weight.detach().clone())
                 weights_list.append(weights)
-                loss_vec.append(running_loss/val_interval)
-                print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / val_interval:.3f}')
-                running_loss = 0.0
+                if (epoch == 1 and i == 0):
+                    loss_vec.append(running_loss)
+                    print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss:.3f}')
+                else:
+                    loss_vec.append(running_loss/val_interval)
+                    print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / val_interval:.3f}')
+                    running_loss = 0.0
                 total = 0
                 correct = 0
                 with torch.no_grad():
@@ -289,13 +293,13 @@ for r in range(n_realizations):
     color = 'tab:red'
     ax1.set_xlabel('Training Steps')
     ax1.set_ylabel('Training Loss (MSE)')
-    ax1.plot(x_axis[1:], loss_vec, color=color)
+    ax1.plot(x_axis, loss_vec, color=color)
     
     ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
     
     color = 'tab:blue'
     ax2.set_ylabel('Test accuracy (%)')  # we already handled the x-label with ax1
-    ax2.plot(x_axis[1:], test_accs, color=color)
+    ax2.plot(x_axis, test_accs, color=color)
     
     fig.tight_layout()
     
@@ -476,7 +480,7 @@ for r in range(n_realizations):
     pkl.dump(save_dict,open(os.path.join(saveDir,'eigs_' + str(r) + '.p'),'wb'))
     
     for i in range(m):
-        ax_rank.plot(x_axis, eigs[i,0:-1]/eigs[0,0:-1], label='lam'+str(i+1))
+        ax_rank.plot(x_axis, eigs[i,1:-1]/eigs[0,1:-1], label='lam'+str(i+1))
     #ax_rank.legend()
     plt.xlabel("Training Steps")
     plt.ylabel("Singular Values")
@@ -500,26 +504,26 @@ fig, ax1 = plt.subplots()
 color = 'tab:red'
 ax1.set_xlabel('Training Steps')
 ax1.set_ylabel('Training Loss (MSE)')
-ax1.fill_between(x_axis[1:], mean_loss-std_loss, 
+ax1.fill_between(x_axis, mean_loss-std_loss, 
                  mean_loss+std_loss,
                  color=color, alpha=0.1)
-ax1.plot(x_axis[1:], mean_loss, color=color)
+ax1.plot(x_axis, mean_loss, color=color)
 
 ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
 
 color = 'tab:blue'
 ax2.set_ylabel('Test accuracy (%)')  # we already handled the x-label with ax1
-ax2.fill_between(x_axis[1:], mean_acc-std_acc,
+ax2.fill_between(x_axis, mean_acc-std_acc,
                  mean_acc + std_acc,
                  color=color, alpha=0.1)
-ax2.plot(x_axis[1:], mean_acc, color=color)
+ax2.plot(x_axis, mean_acc, color=color)
 
 fig.tight_layout()
 
 #plt.show()
 
-fig.savefig(os.path.join(saveDir,'mean_train_test_' + str(r) + '.png'))
-fig.savefig(os.path.join(saveDir,'mean_train_test_' + str(r) + '.pdf'))
+fig.savefig(os.path.join(saveDir,'mean_train_test.png'))
+fig.savefig(os.path.join(saveDir,'mean_train_test.pdf'))
 
 # Rank
 
@@ -535,12 +539,12 @@ cmap = plt.cm.get_cmap('Spectral')
 color_code = np.linspace(0,1,m) 
 
 for i in range(m):
-    ax_rank.fill_between(x_axis, mean_eigs[i,0:-1]-std_eigs[i,0:-1], mean_eigs[i,0:-1]+std_eigs[i,0:-1],
+    ax_rank.fill_between(x_axis, mean_eigs[i,1:-1]-std_eigs[i,1:-1], mean_eigs[i,1:-1]+std_eigs[i,1:-1],
                          color=cmap(color_code[i]),alpha=0.1)
-    ax_rank.plot(x_axis, mean_eigs[i,0:-1], label='lam'+str(i+1),color=cmap(color_code[i]))
+    ax_rank.plot(x_axis, mean_eigs[i,1:-1], label='lam'+str(i+1),color=cmap(color_code[i]))
 #ax_rank.legend()
 plt.xlabel("Training Steps")
 plt.ylabel("Singular Values")
     
-fig_rank.savefig(os.path.join(saveDir,'mean_rank_' + str(r) + '.png'))
-fig_rank.savefig(os.path.join(saveDir,'mean_rank_' + str(r) + '.pdf'))
+fig_rank.savefig(os.path.join(saveDir,'mean_rank.png'))
+fig_rank.savefig(os.path.join(saveDir,'mean_rank.pdf'))

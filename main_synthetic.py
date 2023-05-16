@@ -74,9 +74,9 @@ else:
     lr = 0.0001
     reduction_factor = (1/scaling)*(m)*(feats-1)/10000
 if label_noise:
-    thisFilename = 'binary_cifar_label_noise_low_data=' + str(low_data) + '_m=' + str(m) + '_a=' + str(alpha) + '_sc=' + str(scaling) # This is the general name of all related files
+    thisFilename = 'synthetic_label_noise_low_data=' + str(low_data) + '_m=' + str(m) + '_a=' + str(alpha) + '_sc=' + str(scaling) # This is the general name of all related files
 else:
-    thisFilename = 'binary_mnist_low_data=' + str(low_data) + '_m=' + str(m) + '_a=' + str(alpha) + '_sc=' + str(scaling) # This is the general name of all related files
+    thisFilename = 'synthetic_low_data=' + str(low_data) + '_m=' + str(m) + '_a=' + str(alpha) + '_sc=' + str(scaling) # This is the general name of all related files
 saveDirRoot = 'experiments' # In this case, relative location
 saveDir = os.path.join(saveDirRoot, thisFilename) 
 
@@ -152,7 +152,7 @@ with open(os.path.join(saveDir,"hyperparameters.txt"), 'w') as f:
     for key, value in hyperparameter_dict.items(): 
         f.write('%s:%s\n' % (key, value))
 
-classes = ('cat','dog')#,'2','3','4','5','6','7','8','9')
+#classes = ('cat','dog')#,'2','3','4','5','6','7','8','9')
 
 all_loss_vecs = []
 all_test_accs = []
@@ -171,7 +171,7 @@ for r in range(n_realizations):
         batch_size = train_size
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                               shuffle=True, num_workers=0)
-    val_interval = 10
+    val_interval = 1
     valloader = torch.utils.data.DataLoader(valset, batch_size=val_size,
                                              shuffle=False, num_workers=0)
     
@@ -211,7 +211,7 @@ for r in range(n_realizations):
     test_accs = []
     if r == 0:
         x_axis = []
-    acc_old = 0
+    acc_old = 100000000000
     save_labels = torch.empty(0, device=device)
     save_x = torch.empty(0, device=device)
     
@@ -271,12 +271,10 @@ for r in range(n_realizations):
                         # calculate outputs by running images through the network
                         outputs = net(images)
                         # the class with the highest energy is what we choose as prediction
-                        _, predicted = torch.max(outputs.data, 1)
-                        total += labels.size(0)
-                        correct += (predicted == labels).sum().item()
-                    val_acc = correct/total
+                        _, predicted = outputs.data
+                    val_acc = F.mse(labels,predicted)
                     print(f'[{epoch + 1}, {i + 1:5d}] accu: {val_acc:.3f}')
-                    if val_acc > acc_old:
+                    if val_acc < acc_old:
                         save_net = net
                         acc_old = val_acc
                     for data in testloader:
@@ -286,10 +284,9 @@ for r in range(n_realizations):
                         # calculate outputs by running images through the network
                         outputs = net(images)
                         # the class with the highest energy is what we choose as prediction
-                        _, predicted = torch.max(outputs.data, 1)
-                        total += labels.size(0)
-                        correct += (predicted == labels).sum().item()
-                    test_accs.append(100*correct/total)
+                        _, predicted = outputs.data
+                        test_acc = F.mse(labels,predicted)
+                    test_accs.append(test_acc)
                     
         scheduler.step()
     print('Finished Training')
@@ -358,16 +355,6 @@ for r in range(n_realizations):
     outputs = net(images)
     
     ########################################################################
-    # The outputs are energies for the 10 classes.
-    # The higher the energy for a class, the more the network
-    # thinks that the image is of the particular class.
-    # So, let's get the index of the highest energy:
-    _, predicted = torch.max(outputs, 1)
-    
-    print('Predicted: ', ' '.join(f'{classes[predicted[j]]:5s}'
-                                  for j in range(4)))
-    
-    ########################################################################
     # The results seem pretty good.
     #
     # Let us look at how the network performs on the whole dataset.
@@ -383,43 +370,10 @@ for r in range(n_realizations):
             # calculate outputs by running images through the network
             outputs = net(images)
             # the class with the highest energy is what we choose as prediction
-            _, predicted = torch.max(outputs.data, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
+            _, predicted = outputs.data
+            test_acc = F.mse_loss(labels,predicted)
     
-    print(f'Accuracy of the network on the test images: {100 * correct // total} %')
-    
-    ########################################################################
-    # That looks way better than chance, which is 10% accuracy (randomly picking
-    # a class out of 10 classes).
-    # Seems like the network learnt something.
-    #
-    # Hmmm, what are the classes that performed well, and the classes that did
-    # not perform well:
-    
-    # prepare to count predictions for each class
-    correct_pred = {classname: 0 for classname in classes}
-    total_pred = {classname: 0 for classname in classes}
-    
-    # again no gradients needed
-    with torch.no_grad():
-        for data in testloader:
-            images, labels = data
-            images = images.to(device)
-            labels = labels.to(device)
-            outputs = net(images)
-            _, predictions = torch.max(outputs, 1)
-            # collect the correct predictions for each class
-            for label, prediction in zip(labels, predictions):
-                if label == prediction:
-                    correct_pred[classes[label]] += 1
-                total_pred[classes[label]] += 1
-    
-    
-    # print accuracy for each class
-    for classname, correct_count in correct_pred.items():
-        accuracy = 100 * float(correct_count) / total_pred[classname]
-        print(f'Accuracy for class: {classname:5s} is {accuracy:.1f} %')
+    print(f'Accuracy of the network on the test images: {test_acc}')
     
     save_dict = {'train_loss': loss_vec, 'test_acc': test_accs}
     pkl.dump(save_dict,open(os.path.join(saveDir,'train_test_' + str(r) + '.p'),'wb'))

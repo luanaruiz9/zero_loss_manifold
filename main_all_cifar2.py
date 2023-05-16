@@ -43,7 +43,7 @@ else:
 if label_noise:
     thisFilename = 'binary_cifar_label_noise_low_data=' + str(low_data) + '_m=' + str(m) + '_a=' + str(alpha) + '_sc=' + str(scaling) # This is the general name of all related files
 else:
-    thisFilename = 'binary_mnist_low_data=' + str(low_data) + '_m=' + str(m) + '_a=' + str(alpha) + '_sc=' + str(scaling) # This is the general name of all related files
+    thisFilename = 'binary_cifar_low_data=' + str(low_data) + '_m=' + str(m) + '_a=' + str(alpha) + '_sc=' + str(scaling) # This is the general name of all related files
 saveDirRoot = 'experiments' # In this case, relative location
 saveDir = os.path.join(saveDirRoot, thisFilename) 
 
@@ -222,7 +222,6 @@ for r in range(n_realizations):
             noisy_labels = updated_labels.clone()
             if label_noise:
                 noisy_labels += torch.normal(0,
-                                             sig*torch.ones(updated_labels.shape,device=device))
             if epoch == 0:
                 save_x = torch.cat((save_x, inputs), dim=0)
                 save_labels = torch.cat((save_labels, updated_labels), dim=0)

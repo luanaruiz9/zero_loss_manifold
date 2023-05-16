@@ -419,7 +419,7 @@ for r in range(n_realizations):
             y_gnn = np.dot(x,np.transpose(weight))
             rrmse.append(100*np.sqrt(np.mean(np.linalg.norm(y_reg-y_gnn,axis=-1)**2)/
                                      np.sum(np.linalg.norm(y_reg,axis=-1)**2)))   
-            save_y_gnn[j,i] = y_gnn
+            save_y_gnn[j,i] = y_gnn.squeeze()
         rrmse = np.array(rrmse)
         save_rrmse.append(rrmse)
         print(rrmse[-1])

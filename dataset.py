@@ -29,6 +29,46 @@ from torchvision.datasets.vision import VisionDataset
 #from torchvision.datasets.utils import check_integrity, download_and_extract_archive
 #from torchvision.datasets.vision import VisionDataset
 
+class SyntheticData(VisionDataset):
+    
+    def __init__(self, n, f, mu, sigma):
+        self.n = n
+        self.f = f
+        self.mu = mu
+        self.sigma = sigma
+        self.data = torch.normal(mu*torch.ones(n,f),
+                                 sigma*torch.ones(n,f))
+        self.targets = torch.zeros(n)
+        
+    def change_labels(self, y):
+        self.targets = y
+        
+    def __getitem__(self, index):
+        """
+        Args:
+            index (int): Index
+
+        Returns:
+            tuple: (image, target) where target is index of the target class.
+        """
+
+        return self.data[index], self.targets[index]
+
+
+    def __len__(self) -> int:
+        return len(self.data)
+
+
+
+
+
+
+
+
+
+
+
+
 def get_int(b: bytes) -> int:
     return int(codecs.encode(b, "hex"), 16)
 
@@ -85,10 +125,6 @@ def read_image_file(path: str) -> torch.Tensor:
     if x.ndimension() != 3:
         raise ValueError(f"x should have 3 dimension instead of {x.ndimension()}")
     return x
-
-
-
-
 
 class MNISTFiltered(VisionDataset):
     """`MNIST <http://yann.lecun.com/exdb/mnist/>`_ Dataset.

@@ -29,7 +29,7 @@ class Net(nn.Module):
         self.alpha = alpha
         fc = []
         for i in range(m):
-            this_layer = nn.Linear(feats*feats, 1, bias=False, device=device)
+            this_layer = nn.Linear(feats, 1, bias=False, device=device)
             if ortho:
                 nn.init.orthogonal_(this_layer.weight)
             fc.append(this_layer)
@@ -69,10 +69,10 @@ scaling = float(sys.argv[4]) #0.5, 1, 2, 3
 
 if low_data:
     lr = 0.0001#0.001
-    reduction_factor = 0.9*scaling*(feats*feats)/10000
+    reduction_factor = 0.9*scaling*(feats)/10000
 else:
     lr = 0.0001
-    reduction_factor = (1/scaling)*(m)*(feats*feats-1)/10000
+    reduction_factor = (1/scaling)*(m)*(feats-1)/10000
 if label_noise:
     thisFilename = 'binary_cifar_label_noise_low_data=' + str(low_data) + '_m=' + str(m) + '_a=' + str(alpha) + '_sc=' + str(scaling) # This is the general name of all related files
 else:
@@ -144,8 +144,8 @@ hyperparameter_dict = {'nb_activations': str(m),
                        'train_size': str(train_size),
                        'batch_size': str(batch_size),
                        'test_size': str(test_size),
-                       'data dimension': str(feats*feats),
-                       'nb_params_per_activ': str(feats*feats)
+                       'data dimension': str(feats),
+                       'nb_params_per_activ': str(feats)
                        }
 
 with open(os.path.join(saveDir,"hyperparameters.txt"), 'w') as f: 

@@ -57,7 +57,7 @@ class SyntheticData(VisionDataset):
 
 
     def __len__(self) -> int:
-        return len(self.data)
+        return self.data.shape[0]
 
 
 

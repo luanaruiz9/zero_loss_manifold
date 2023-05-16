@@ -115,11 +115,24 @@ test_size = int(reduction_factor*len(old_testset))
 
 net_teacher = Net(m, alpha, ortho='True')
 
+trainloader = torch.utils.data.DataLoader(old_trainset, batch_size=old_train_size,
+                                          shuffle=False, num_workers=0)
+dataiter = iter(trainloader)
+x, _ = next(dataiter)
+x = x.to(device)
 with torch.no_grad():
-    y = net_teacher(old_trainset.data.to(device))
-    old_trainset.change_labels(y)
-    y = net_teacher(old_testset.data.to(device))
-    old_testset.change_labels(y)
+    y = net_teacher(x)
+    old_trainset.change_labels(torch.tensor(y))
+    
+testloader = torch.utils.data.DataLoader(old_testset, batch_size=old_test_size,
+                                          shuffle=False, num_workers=0)
+dataiter = iter(testloader)
+x, _ = next(dataiter)
+x = x.to(device)
+with torch.no_grad():
+    y = net_teacher(x)
+    old_testset.change_labels(torch.tensor(y))
+
 
 # Save info
 

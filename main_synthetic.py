@@ -433,7 +433,7 @@ for r in range(n_realizations):
     fig_rank, ax_rank = plt.subplots(1,1)
     
     eigs = np.zeros((m, save_y_gnn.shape[0]))
-    save_y_gnn = save_y_gnn[:,:,save_labels.cpu().numpy()==1]
+    save_y_gnn = save_y_gnn[:,:,save_labels[:,0].cpu().numpy()==1]
     
     for i in range(save_y_gnn.shape[0]):
         aux_tensor = torch.tensor(np.reshape(save_y_gnn[i],(m,-1)))

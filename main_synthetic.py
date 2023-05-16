@@ -116,9 +116,9 @@ test_size = int(reduction_factor*len(old_testset))
 net_teacher = Net(m, alpha, ortho='True')
 
 with torch.no_grad():
-    y = net_teacher(old_trainset.data)
+    y = net_teacher(old_trainset.data.to(device))
     old_trainset.change_labels(y)
-    y = net_teacher(old_testset.data)
+    y = net_teacher(old_testset.data.to(device))
     old_testset.change_labels(y)
 
 # Save info

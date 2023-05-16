@@ -272,7 +272,7 @@ for r in range(n_realizations):
                         outputs = net(images)
                         # the class with the highest energy is what we choose as prediction
                         _, predicted = outputs.data
-                    val_acc = F.mse(labels,predicted)
+                    val_acc = F.mse_loss(labels,predicted)
                     print(f'[{epoch + 1}, {i + 1:5d}] accu: {val_acc:.3f}')
                     if val_acc < acc_old:
                         save_net = net
@@ -285,7 +285,7 @@ for r in range(n_realizations):
                         outputs = net(images)
                         # the class with the highest energy is what we choose as prediction
                         _, predicted = outputs.data
-                        test_acc = F.mse(labels,predicted)
+                        test_acc = F.mse_loss(labels,predicted)
                     test_accs.append(test_acc)
                     
         scheduler.step()

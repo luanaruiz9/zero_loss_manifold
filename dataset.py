@@ -41,7 +41,7 @@ class SyntheticData(VisionDataset):
         self.targets = torch.zeros(n)
         
     def change_labels(self, y):
-        self.targets = y
+        self.targets = y.squeeze()
         
     def __getitem__(self, index):
         """

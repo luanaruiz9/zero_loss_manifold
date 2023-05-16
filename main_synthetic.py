@@ -115,6 +115,13 @@ test_size = int(reduction_factor*len(old_testset))
 
 net_teacher = Net(m, alpha, ortho='True')
 
+with torch.no_grad():
+    y = net_teacher(old_trainset.data.to(device))
+    old_trainset.change_labels(y)
+    y = net_teacher(old_testset.data.to(device))
+    old_testset.change_labels(y)
+    
+"""
 trainloader = torch.utils.data.DataLoader(old_trainset, batch_size=old_train_size,
                                           shuffle=False, num_workers=0)
 dataiter = iter(trainloader)
@@ -132,7 +139,7 @@ x = x.to(device)
 with torch.no_grad():
     y = net_teacher(x)
     old_testset.change_labels(torch.tensor(y))
-
+"""
 
 # Save info
 
@@ -419,7 +426,7 @@ for r in range(n_realizations):
             y_gnn = np.dot(x,np.transpose(weight))
             rrmse.append(100*np.sqrt(np.mean(np.linalg.norm(y_reg-y_gnn,axis=-1)**2)/
                                      np.sum(np.linalg.norm(y_reg,axis=-1)**2)))   
-            save_y_gnn[j,i] = y_gnn.squeeze()
+            save_y_gnn[j,i] = y_gnn
         rrmse = np.array(rrmse)
         save_rrmse.append(rrmse)
         print(rrmse[-1])
@@ -433,7 +440,7 @@ for r in range(n_realizations):
     fig_rank, ax_rank = plt.subplots(1,1)
     
     eigs = np.zeros((m, save_y_gnn.shape[0]))
-    save_y_gnn = save_y_gnn[:,:,save_labels[:,0].cpu().numpy()==1]
+    save_y_gnn = save_y_gnn[:,:,save_labels[:,0].cpu().numpy()==1,0]
     
     for i in range(save_y_gnn.shape[0]):
         aux_tensor = torch.tensor(np.reshape(save_y_gnn[i],(m,-1)))

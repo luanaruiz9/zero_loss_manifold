@@ -152,7 +152,7 @@ for r in range(n_realizations):
             fc = []
             for i in range(m):
                 this_layer = nn.Linear(channels*feats*feats, C, bias=False, device=device)
-                #nn.init.orthogonal_(this_layer.weight)
+                nn.init.orthogonal_(this_layer.weight)
                 fc.append(this_layer)
             self.fc = nn.ParameterList(fc)
     

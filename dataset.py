@@ -42,6 +42,7 @@ class SyntheticData(VisionDataset):
         
     def change_labels(self, y):
         self.targets = y.squeeze()
+        print(self.targets.shape)
         
     def __getitem__(self, index):
         """

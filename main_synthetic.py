@@ -30,8 +30,8 @@ class Net(nn.Module):
         fc = []
         for i in range(m):
             this_layer = nn.Linear(feats, 1, bias=False, device=device)
-            if ortho:
-                nn.init.orthogonal_(this_layer.weight)
+            #if ortho:
+                #nn.init.orthogonal_(this_layer.weight)
             fc.append(this_layer)
         self.fc = nn.ParameterList(fc)
 
@@ -55,17 +55,17 @@ class Net(nn.Module):
 np.random.seed(0)
 n_realizations = 5
 
-feats = 32
+feats = 128
 
-m = int(sys.argv[1]) #4, 8, 12, 16
-alpha = float(sys.argv[2]) #0, 0.01, 0.1
+m = 4#int(sys.argv[1]) #4, 8, 12, 16
+alpha = 0.1#float(sys.argv[2]) #0, 0.01, 0.1
 sig = 0.1
 batch_size = 'all'#sys.argv[3] #32 #'all'
-low_data = str(sys.argv[3]) == 'True'
+low_data = True#str(sys.argv[3]) == 'True'
 if 'all' not in str(batch_size):
     batch_size = int(batch_size)
 label_noise = True
-scaling = float(sys.argv[4]) #0.5, 1, 2, 3
+scaling = 1#float(sys.argv[4]) #0.5, 1, 2, 3
 
 if low_data:
     lr = 0.0001#0.001
@@ -115,14 +115,6 @@ test_size = int(reduction_factor*len(old_testset))
 
 net_teacher = Net(m, alpha, ortho='True')
 
-with torch.no_grad():
-    y = net_teacher(old_trainset.data.to(device))
-    print(y.shape)
-    old_trainset.change_labels(y)
-    y = net_teacher(old_testset.data.to(device))
-    old_testset.change_labels(y)
-    
-"""
 trainloader = torch.utils.data.DataLoader(old_trainset, batch_size=old_train_size,
                                           shuffle=False, num_workers=0)
 dataiter = iter(trainloader)
@@ -140,7 +132,7 @@ x = x.to(device)
 with torch.no_grad():
     y = net_teacher(x)
     old_testset.change_labels(torch.tensor(y))
-"""
+    
 
 # Save info
 
@@ -279,7 +271,7 @@ for r in range(n_realizations):
                         # calculate outputs by running images through the network
                         outputs = net(images)
                         # the class with the highest energy is what we choose as prediction
-                        _, predicted = outputs.data
+                        predicted = outputs.data
                     val_acc = F.mse_loss(labels,predicted)
                     print(f'[{epoch + 1}, {i + 1:5d}] accu: {val_acc:.3f}')
                     if val_acc < acc_old:
@@ -292,7 +284,7 @@ for r in range(n_realizations):
                         # calculate outputs by running images through the network
                         outputs = net(images)
                         # the class with the highest energy is what we choose as prediction
-                        _, predicted = outputs.data
+                        predicted = outputs.data
                         test_acc = F.mse_loss(labels,predicted)
                     test_accs.append(test_acc)
                     
@@ -378,7 +370,7 @@ for r in range(n_realizations):
             # calculate outputs by running images through the network
             outputs = net(images)
             # the class with the highest energy is what we choose as prediction
-            _, predicted = outputs.data
+            predicted = outputs.data
             test_acc = F.mse_loss(labels,predicted)
     
     print(f'Accuracy of the network on the test images: {test_acc}')
@@ -427,7 +419,7 @@ for r in range(n_realizations):
             y_gnn = np.dot(x,np.transpose(weight))
             rrmse.append(100*np.sqrt(np.mean(np.linalg.norm(y_reg-y_gnn,axis=-1)**2)/
                                      np.sum(np.linalg.norm(y_reg,axis=-1)**2)))   
-            save_y_gnn[j,i] = y_gnn
+            save_y_gnn[j,i] = y_gnn.squeeze()
         rrmse = np.array(rrmse)
         save_rrmse.append(rrmse)
         print(rrmse[-1])
@@ -441,7 +433,7 @@ for r in range(n_realizations):
     fig_rank, ax_rank = plt.subplots(1,1)
     
     eigs = np.zeros((m, save_y_gnn.shape[0]))
-    save_y_gnn = save_y_gnn[:,:,save_labels[:,0].cpu().numpy()==1,0]
+    save_y_gnn = save_y_gnn[:,:,save_labels[:,0].cpu().numpy()==1]
     
     for i in range(save_y_gnn.shape[0]):
         aux_tensor = torch.tensor(np.reshape(save_y_gnn[i],(m,-1)))

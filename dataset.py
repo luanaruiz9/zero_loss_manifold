@@ -36,12 +36,16 @@ class SyntheticData(VisionDataset):
         self.f = f
         self.mu = mu
         self.sigma = sigma
-        self.data = torch.normal(mu*torch.ones(n,f),
-                                 sigma*torch.ones(n,f))
-        self.targets = torch.zeros(n)
+        self.data = []
+        self.targets = []
+        
+        for i in range(n):
+            self.data.append(torch.normal(mu*torch.ones(f),
+                                 sigma*torch.ones(f)))
+            self.targets.append(torch.zeros(1))
         
     def change_labels(self, y):
-        self.targets = y.squeeze()
+        self.targets = y
         print(self.targets.shape)
         
     def __getitem__(self, index):
@@ -57,7 +61,7 @@ class SyntheticData(VisionDataset):
 
 
     def __len__(self) -> int:
-        return self.data.shape[0]
+        return len(self.data)
 
 
 

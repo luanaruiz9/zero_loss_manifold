@@ -39,10 +39,22 @@ class SyntheticData(VisionDataset):
         self.data = []
         self.targets = []
         
+        h1 = int(f/2)
+        h2 = f-h1
+
         for i in range(n):
-            self.data.append(torch.normal(mu*torch.ones(f),
-                                 sigma*torch.ones(f)))
-            self.targets.append(torch.zeros(1))
+            datum1 = torch.normal(mu*torch.ones(h1),
+                                 sigma*torch.ones(h1))
+            datum2 = torch.normal(0,
+                                 0.05*torch.ones(h2))
+            if i < int(n/2):
+                datum = torch.cat((datum1,datum2))
+                target = torch.ones(1)
+            else:
+                datum = torch.cat((datum2,datum1))
+                target = torch.zeros(1)
+            self.data.append(datum)
+            self.targets.append(target)
         
     def change_labels(self, y):
         self.targets = y

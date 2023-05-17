@@ -31,7 +31,7 @@ class Net(nn.Module):
         for i in range(m):
             this_layer = nn.Linear(feats, 1, bias=False, device=device)
             #if ortho:
-                #nn.init.orthogonal_(this_layer.weight)
+            #    nn.init.orthogonal_(this_layer.weight)
             fc.append(this_layer)
         self.fc = nn.ParameterList(fc)
 
@@ -53,25 +53,25 @@ class Net(nn.Module):
 
 
 np.random.seed(0)
-n_realizations = 5
+n_realizations = 10
 
-feats = 128
+feats = 32
 
-m = 4#int(sys.argv[1]) #4, 8, 12, 16
-alpha = 0.1#float(sys.argv[2]) #0, 0.01, 0.1
-sig = 0.1
+m = int(sys.argv[1]) #4, 8, 12, 16
+alpha = float(sys.argv[2]) #0, 0.01, 0.1
+sig = 0.03
 batch_size = 'all'#sys.argv[3] #32 #'all'
-low_data = True#str(sys.argv[3]) == 'True'
+low_data = str(sys.argv[3]) == 'True'
 if 'all' not in str(batch_size):
     batch_size = int(batch_size)
 label_noise = True
-scaling = 1#float(sys.argv[4]) #0.5, 1, 2, 3
+scaling = float(sys.argv[4]) #0.5, 1, 2, 3
 
 if low_data:
-    lr = 0.0001#0.001
+    lr = 0.001#0.001
     reduction_factor = 0.9*scaling*(feats)/10000
 else:
-    lr = 0.0001
+    lr = 0.005
     reduction_factor = (1/scaling)*(m)*(feats-1)/10000
 if label_noise:
     thisFilename = 'synthetic_label_noise_low_data=' + str(low_data) + '_m=' + str(m) + '_a=' + str(alpha) + '_sc=' + str(scaling) # This is the general name of all related files
@@ -100,23 +100,26 @@ if not os.path.exists(saveDir):
 #     the num_worker of torch.utils.data.DataLoader() to 0.
 
 if low_data == True:
-    n_epochs = 50
+    n_epochs = 500
 else:
-    n_epochs = 50
+    n_epochs = 500
     
 val_ratio = 0.1
 old_train_size = 10000
 old_test_size = 1000
-old_trainset = SyntheticData(old_train_size, feats, mu=0, sigma=10)
-old_testset = SyntheticData(old_test_size, feats, mu=0, sigma=10)
+old_trainset = SyntheticData(old_train_size, feats, mu=0, sigma=1)
+
+np.random.seed(0)
+old_testset = SyntheticData(old_test_size, feats, mu=0, sigma=1)
 
 train_size = int(reduction_factor*old_train_size)
 test_size = int(reduction_factor*len(old_testset))
 
-net_teacher = Net(m, alpha, ortho='True')
+#net_teacher = Net(m, alpha, ortho='True')
 
-trainloader = torch.utils.data.DataLoader(old_trainset, batch_size=old_train_size,
-                                          shuffle=False, num_workers=0)
+#trainloader = torch.utils.data.DataLoader(old_trainset, batch_size=old_train_size,
+                                          #shuffle=False, num_workers=0)
+"""
 dataiter = iter(trainloader)
 x, _ = next(dataiter)
 x = x.to(device)
@@ -132,7 +135,7 @@ x = x.to(device)
 with torch.no_grad():
     y = net_teacher(x)
     old_testset.change_labels(torch.tensor(y))
-    
+"""    
 
 # Save info
 
@@ -261,31 +264,35 @@ for r in range(n_realizations):
                 loss_vec.append(running_loss/val_interval)
                 print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / val_interval:.3f}')
                 running_loss = 0.0
-                total = 0
-                correct = 0
                 with torch.no_grad():
-                    for data in valloader:
+                    val_acc = 0
+                    test_acc = 0
+                    for i, data in enumerate(valloader):
                         images, labels = data
                         images = images.to(device)
                         labels = labels.to(device)
                         # calculate outputs by running images through the network
                         outputs = net(images)
                         # the class with the highest energy is what we choose as prediction
-                        predicted = outputs.data
-                    val_acc = F.mse_loss(labels,predicted)
+                        predicted = outputs
+                        val_acc += F.mse_loss(labels,predicted)
+                    test_acc = test_acc/(i+1)
                     print(f'[{epoch + 1}, {i + 1:5d}] accu: {val_acc:.3f}')
                     if val_acc < acc_old:
                         save_net = net
                         acc_old = val_acc
-                    for data in testloader:
+                    test_acc = 0
+                    for i, data in enumerate(testloader):
                         images, labels = data
                         images = images.to(device)
                         labels = labels.to(device)
                         # calculate outputs by running images through the network
                         outputs = net(images)
                         # the class with the highest energy is what we choose as prediction
-                        predicted = outputs.data
-                        test_acc = F.mse_loss(labels,predicted)
+                        predicted = outputs
+                        test_acc += F.mse_loss(labels,predicted)
+                    test_acc = test_acc/(i+1)
+                    test_acc = test_acc.cpu().numpy()
                     test_accs.append(test_acc)
                     
         scheduler.step()
@@ -303,15 +310,15 @@ for r in range(n_realizations):
     
     color = 'tab:red'
     ax1.set_xlabel('Training Steps')
-    ax1.set_ylabel('Training Loss (MSE)')
-    ax1.plot(x_axis[1:], loss_vec, color=color)
+    ax1.set_ylabel('Loss (MSE)')
+    ax1.plot(x_axis[1:], loss_vec, color=color, label='Train')
     
-    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+    #ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
     
     color = 'tab:blue'
-    ax2.set_ylabel('Test accuracy (%)')  # we already handled the x-label with ax1
-    ax2.plot(x_axis[1:], test_accs, color=color)
-    
+    #ax2.set_ylabel('Test Loss (MSE)')  # we already handled the x-label with ax1
+    ax1.plot(x_axis[1:], test_accs, color=color, label='Test')
+    plt.legend()
     fig.tight_layout()
     
     #plt.show()
@@ -359,19 +366,19 @@ for r in range(n_realizations):
     #
     # Let us look at how the network performs on the whole dataset.
     
-    correct = 0
-    total = 0
+    test_acc = 0
     # since we're not training, we don't need to calculate the gradients for our outputs
     with torch.no_grad():
-        for data in testloader:
+        for i, data in enumerate(testloader):
             images, labels = data
             images = images.to(device)
             labels = labels.to(device)
             # calculate outputs by running images through the network
             outputs = net(images)
             # the class with the highest energy is what we choose as prediction
-            predicted = outputs.data
-            test_acc = F.mse_loss(labels,predicted)
+            predicted = outputs
+            test_acc += F.mse_loss(labels,predicted)
+        test_acc = test_acc/(i+1)
     
     print(f'Accuracy of the network on the test images: {test_acc}')
     
@@ -433,7 +440,6 @@ for r in range(n_realizations):
     fig_rank, ax_rank = plt.subplots(1,1)
     
     eigs = np.zeros((m, save_y_gnn.shape[0]))
-    save_y_gnn = save_y_gnn[:,:,save_labels[:,0].cpu().numpy()==1]
     
     for i in range(save_y_gnn.shape[0]):
         aux_tensor = torch.tensor(np.reshape(save_y_gnn[i],(m,-1)))
@@ -471,27 +477,27 @@ fig, ax1 = plt.subplots()
 
 color = 'tab:red'
 ax1.set_xlabel('Training Steps')
-ax1.set_ylabel('Training Loss (MSE)')
+ax1.set_ylabel('Loss (MSE)')
 ax1.fill_between(x_axis[1:], mean_loss-std_loss, 
                  mean_loss+std_loss,
                  color=color, alpha=0.1)
-ax1.plot(x_axis[1:], mean_loss, color=color)
+ax1.plot(x_axis[1:], mean_loss, color=color, label='Train')
 
-ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+#ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
 
 color = 'tab:blue'
-ax2.set_ylabel('Test accuracy (%)')  # we already handled the x-label with ax1
-ax2.fill_between(x_axis[1:], mean_acc-std_acc,
+#ax2.set_ylabel('Test Loss (MSE)')  # we already handled the x-label with ax1
+ax1.fill_between(x_axis[1:], mean_acc-std_acc,
                  mean_acc + std_acc,
                  color=color, alpha=0.1)
-ax2.plot(x_axis[1:], mean_acc, color=color)
+ax1.plot(x_axis[1:], mean_acc, color=color, label='Test')
 
 fig.tight_layout()
 
 #plt.show()
 
-fig.savefig(os.path.join(saveDir,'mean_train_test_' + str(r) + '.png'))
-fig.savefig(os.path.join(saveDir,'mean_train_test_' + str(r) + '.pdf'))
+fig.savefig(os.path.join(saveDir,'mean_train_test.png'))
+fig.savefig(os.path.join(saveDir,'mean_train_test.pdf'))
 
 # Rank
 
@@ -514,5 +520,5 @@ for i in range(m):
 plt.xlabel("Training Steps")
 plt.ylabel("Singular Values")
     
-fig_rank.savefig(os.path.join(saveDir,'mean_rank_' + str(r) + '.png'))
-fig_rank.savefig(os.path.join(saveDir,'mean_rank_' + str(r) + '.pdf'))
+fig_rank.savefig(os.path.join(saveDir,'mean_rank.png'))
+fig_rank.savefig(os.path.join(saveDir,'mean_rank.pdf'))

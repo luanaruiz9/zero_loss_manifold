@@ -35,7 +35,7 @@ label_noise = True
 scaling = float(sys.argv[4]) #0.5, 1, 2, 3
 
 if low_data:
-    lr = 0.000001
+    lr = 0.00001
     reduction_factor = 0.9*scaling*(feats*feats)/12000
 else:
     lr = 0.00001

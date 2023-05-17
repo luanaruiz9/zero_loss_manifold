@@ -14,7 +14,7 @@ from sklearn.linear_model import LinearRegression
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
-from dataset2 import SyntheticData
+from dataset_2 import SyntheticData
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print(device)

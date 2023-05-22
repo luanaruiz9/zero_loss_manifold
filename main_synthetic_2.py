@@ -250,7 +250,7 @@ for r in range(n_realizations):
     
             # print statistics
             running_loss += loss.item()
-            if epoch % val_interval == val_interval-1:    # print every 100 mini-batches
+            if epoch % val_interval == val_interval-1 or (epoch == 1 and i == 0):    # print every 100 mini-batches
                 if r == 0:
                     step_count = step_count + val_interval 
                     x_axis.append(step_count)

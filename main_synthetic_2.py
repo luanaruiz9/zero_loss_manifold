@@ -55,9 +55,9 @@ class Net(nn.Module):
 np.random.seed(0)
 n_realizations = 1
 
-feats = 100
+feats = 128
 
-m = 4#int(sys.argv[1]) #4, 8, 12, 16
+m = 3#int(sys.argv[1]) #4, 8, 12, 16
 alpha = 0.1#float(sys.argv[2]) #0, 0.01, 0.1
 sig = 0.05
 batch_size = 'all'#sys.argv[3] #32 #'all'
@@ -65,13 +65,13 @@ low_data = True#str(sys.argv[3]) == 'True'
 if 'all' not in str(batch_size):
     batch_size = int(batch_size)
 label_noise = True
-scaling = 1#float(sys.argv[4]) #0.5, 1, 2, 3
+scaling = 0.7#float(sys.argv[4]) #0.5, 1, 2, 3
 
 if low_data:
     lr = 0.000001#0.001
     reduction_factor = 0.9*scaling*(feats)/10000
 else:
-    lr = 0.0001
+    lr = 0.000001
     reduction_factor = (1/scaling)*(m)*(feats-1)/10000
 if label_noise:
     thisFilename = 'synthetic_label_noise_low_data=' + str(low_data) + '_m=' + str(m) + '_a=' + str(alpha) + '_sc=' + str(scaling) # This is the general name of all related files
@@ -100,19 +100,20 @@ if not os.path.exists(saveDir):
 #     the num_worker of torch.utils.data.DataLoader() to 0.
 
 if low_data == True:
-    n_epochs = 200000
+    n_epochs = 100000000
 else:
-    n_epochs = 200000
+    n_epochs = 100000000
     
 val_ratio = 0.1
 old_train_size = 10000
-old_test_size = 1000
+old_test_size = 2000
 old_trainset = SyntheticData(old_train_size, feats, mu=0, sigma=1)
 old_testset = SyntheticData(old_test_size, feats, mu=0, sigma=1)
 
 train_size = int(reduction_factor*old_train_size)
 test_size = int(reduction_factor*len(old_testset))
 
+"""
 net_teacher = Net(m, alpha, ortho='True')
 
 trainloader = torch.utils.data.DataLoader(old_trainset, batch_size=old_train_size,
@@ -133,7 +134,7 @@ with torch.no_grad():
     y = net_teacher(x)
     old_testset.change_labels(torch.tensor(y))
     
-
+"""
 # Save info
 
 hyperparameter_dict = {'nb_activations': str(m), 
@@ -171,7 +172,7 @@ for r in range(n_realizations):
         batch_size = train_size
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                               shuffle=True, num_workers=0)
-    val_interval = 100
+    val_interval = 5000
     valloader = torch.utils.data.DataLoader(valset, batch_size=val_size,
                                              shuffle=False, num_workers=0)
     
@@ -197,7 +198,7 @@ for r in range(n_realizations):
     
     criterion = nn.MSELoss()
     optimizer = optim.SGD(net.parameters(), lr=lr)#, weight_decay=0.0005)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=100, gamma=0.95)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1000, gamma=1)
     
     ########################################################################
     # 4. Train the network
@@ -219,7 +220,7 @@ for r in range(n_realizations):
         step_count = 0
         x_axis = [step_count]
     running_loss = 0
-    for epoch in range(n_epochs):  # loop over the dataset multiple times
+    for epoch in range(n_epochs) or (epoch == 1 and i == 0):  # loop over the dataset multiple times
         for i, data in tqdm(enumerate(trainloader, 0)):
             if epoch == 0 and i == 0:
                 weights = []
@@ -286,7 +287,7 @@ for r in range(n_realizations):
                         # the class with the highest energy is what we choose as prediction
                         predicted = outputs
                         test_acc = F.mse_loss(labels,predicted)
-                    test_accs.append(test_acc)
+                    test_accs.append(test_acc.cpu().numpy())
                     
         scheduler.step()
     print('Finished Training')
@@ -304,15 +305,16 @@ for r in range(n_realizations):
     color = 'tab:red'
     ax1.set_xlabel('Training Steps')
     ax1.set_xscale('log')
-    ax1.set_ylabel('Training Loss (MSE)')
-    ax1.plot(x_axis[1:], loss_vec, color=color)
+    ax1.set_ylabel('Loss (MSE)')
+    loss_vec = loss_vec
+    ax1.plot(x_axis[1:], loss_vec, color=color, label='training')
     
-    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+    #x2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
     
     color = 'tab:blue'
-    ax2.set_ylabel('Test Loss (MSE)')  # we already handled the x-label with ax1
-    ax2.plot(x_axis[1:], test_accs, color=color)
-    
+    #ax2.set_ylabel('Test Loss (MSE)')  # we already handled the x-label with ax1
+    ax1.plot(x_axis[1:], test_accs, color=color, label='test')
+    plt.legend()
     fig.tight_layout()
     
     #plt.show()
@@ -475,22 +477,22 @@ fig, ax1 = plt.subplots()
 
 color = 'tab:red'
 ax1.set_xlabel('Training Steps')
-ax1.set_ylabel('Training Loss (MSE)')
+ax1.set_ylabel('Loss (MSE)')
 ax1.set_xscale('log')
 ax1.fill_between(x_axis[1:], mean_loss-std_loss, 
                  mean_loss+std_loss,
                  color=color, alpha=0.1)
-ax1.plot(x_axis[1:], mean_loss, color=color)
+ax1.plot(x_axis[1:], mean_loss, color=color, label='training')
 
-ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+#ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
 
 color = 'tab:blue'
-ax2.set_ylabel('Test Loss (MSE)')  # we already handled the x-label with ax1
-ax2.fill_between(x_axis[1:], mean_acc-std_acc,
+#ax2.set_ylabel('Test Loss (MSE)')  # we already handled the x-label with ax1
+ax1.fill_between(x_axis[1:], mean_acc-std_acc,
                  mean_acc + std_acc,
                  color=color, alpha=0.1)
-ax2.plot(x_axis[1:], mean_acc, color=color)
-
+ax1.plot(x_axis[1:], mean_acc, color=color, label='test')
+plt.legend()
 fig.tight_layout()
 
 #plt.show()

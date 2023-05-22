@@ -57,7 +57,7 @@ n_realizations = 1
 
 feats = 128
 
-m = 3#int(sys.argv[1]) #4, 8, 12, 16
+m = 10#int(sys.argv[1]) #4, 8, 12, 16
 alpha = 0.1#float(sys.argv[2]) #0, 0.01, 0.1
 sig = 0.05
 batch_size = 'all'#sys.argv[3] #32 #'all'
@@ -100,15 +100,15 @@ if not os.path.exists(saveDir):
 #     the num_worker of torch.utils.data.DataLoader() to 0.
 
 if low_data == True:
-    n_epochs = 100000000
+    n_epochs = 1000000
 else:
-    n_epochs = 100000000
+    n_epochs = 1000
     
 val_ratio = 0.1
 old_train_size = 10000
 old_test_size = 2000
-old_trainset = SyntheticData(old_train_size, feats, mu=0, sigma=1)
-old_testset = SyntheticData(old_test_size, feats, mu=0, sigma=1)
+old_trainset = SyntheticData(old_train_size, feats, mu=1, sigma=0.1)
+old_testset = SyntheticData(old_test_size, feats, mu=1, sigma=0.1)
 
 train_size = int(reduction_factor*old_train_size)
 test_size = int(reduction_factor*len(old_testset))
@@ -172,7 +172,7 @@ for r in range(n_realizations):
         batch_size = train_size
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                               shuffle=True, num_workers=0)
-    val_interval = 5000
+    val_interval = 10
     valloader = torch.utils.data.DataLoader(valset, batch_size=val_size,
                                              shuffle=False, num_workers=0)
     
@@ -220,9 +220,9 @@ for r in range(n_realizations):
         step_count = 0
         x_axis = [step_count]
     running_loss = 0
-    for epoch in range(n_epochs) or (epoch == 1 and i == 0):  # loop over the dataset multiple times
+    for epoch in range(n_epochs):  # loop over the dataset multiple times
         for i, data in tqdm(enumerate(trainloader, 0)):
-            if epoch == 0 and i == 0:
+            if epoch == 0 and i == 0: # or (epoch == 1 and i == 0):
                 weights = []
                 for weight in list(net.parameters()):
                     weights.append(weight.detach().clone())

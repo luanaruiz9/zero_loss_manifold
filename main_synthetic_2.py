@@ -23,7 +23,7 @@ def nonlinear(x, alpha):
     return torch.pow(x,3) + alpha*x
 
 class Net(nn.Module):
-    def __init__(self, m, alpha, ortho=True):
+    def __init__(self, m, alpha, ortho=False):
         super().__init__()
         self.m = m
         self.alpha = alpha
@@ -31,7 +31,7 @@ class Net(nn.Module):
         for i in range(m):
             this_layer = nn.Linear(feats, 1, bias=False, device=device)
             if ortho:
-                nn.init.orthogonal_(this_layer.weight)
+                nn.init.ones_(this_layer.weight)
             fc.append(this_layer)
         self.fc = nn.ParameterList(fc)
 
@@ -188,7 +188,7 @@ for r in range(n_realizations):
     # Copy the neural network from the Neural Networks section before and modify it to
     # take 3-channel images (instead of 1-channel images as it was defined).
     
-    net = Net(m, alpha)
+    net = Net(m, alpha, ortho=True)
     
     ########################################################################
     # 3. Define a Loss function and optimizer
@@ -348,7 +348,7 @@ for r in range(n_realizations):
     # Next, let's load back in our saved model (note: saving and re-loading the model
     # wasn't necessary here, we only did it to illustrate how to do so):
     
-    net = Net(m, alpha)
+    net = Net(m, alpha, ortho=True)
     net.load_state_dict(torch.load(PATH))
     
     ########################################################################
@@ -439,12 +439,12 @@ for r in range(n_realizations):
     eigs = np.zeros((m, save_y_gnn.shape[0]))
     
     for i in range(save_y_gnn.shape[0]):
-        aux_tensor = torch.tensor(np.reshape(save_y_gnn[i],(m,-1)))
-        aux_tensor = aux_tensor.to_sparse()
-        _, L,_ = torch.svd_lowrank(aux_tensor,q=15)
-        eigs[0:L.shape[0],i] = L.cpu().numpy()
-        #aux = np.reshape(save_y_gnn[i],(m,-1))
-        #_, L, _ = np.linalg.svd(aux)
+        #aux_tensor = torch.tensor(np.reshape(save_y_gnn[i],(m,-1)))
+        #aux_tensor = aux_tensor.to_sparse()
+        #_, L,_ = torch.svd_lowrank(aux_tensor,q=15)
+        #eigs[0:L.shape[0],i] = L.cpu().numpy()
+        aux = np.reshape(save_y_gnn[i],(m,-1))
+        _, L, _ = np.linalg.svd(aux)
         eigs[0:L.shape[0],i] = L
         
     all_eigs.append(eigs)

@@ -31,7 +31,7 @@ class Net(nn.Module):
         for i in range(m):
             this_layer = nn.Linear(feats, 1, bias=False, device=device)
             if ortho:
-                nn.init.ones_(this_layer.weight)
+                nn.init.zeros_(this_layer.weight)
             fc.append(this_layer)
         self.fc = nn.ParameterList(fc)
 

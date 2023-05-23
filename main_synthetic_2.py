@@ -23,15 +23,15 @@ def nonlinear(x, alpha):
     return torch.pow(x,3) + alpha*x
 
 class Net(nn.Module):
-    def __init__(self, m, alpha, ortho=False):
+    def __init__(self, m, alpha, ortho=True):
         super().__init__()
         self.m = m
         self.alpha = alpha
         fc = []
         for i in range(m):
             this_layer = nn.Linear(feats, 1, bias=False, device=device)
-            #if ortho:
-                #nn.init.orthogonal_(this_layer.weight)
+            if ortho:
+                nn.init.orthogonal_(this_layer.weight)
             fc.append(this_layer)
         self.fc = nn.ParameterList(fc)
 
@@ -115,7 +115,7 @@ train_size = int(reduction_factor*old_train_size)
 test_size = int(reduction_factor*len(old_testset))
 
 
-net_teacher = Net(m_teacher, alpha, ortho='False')
+net_teacher = Net(m_teacher, alpha, ortho=False)
 
 trainloader = torch.utils.data.DataLoader(old_trainset, batch_size=old_train_size,
                                           shuffle=False, num_workers=0)

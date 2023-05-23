@@ -441,7 +441,7 @@ for r in range(n_realizations):
     for i in range(save_y_gnn.shape[0]):
         aux_tensor = torch.tensor(np.reshape(save_y_gnn[i],(m,-1)))
         aux_tensor = aux_tensor.to_sparse()
-        _, L,_ = torch.svd_lowrank(aux_tensor,q=m)
+        _, L,_ = torch.svd_lowrank(aux_tensor,q=15)
         eigs[0:L.shape[0],i] = L.cpu().numpy()
         #aux = np.reshape(save_y_gnn[i],(m,-1))
         #_, L, _ = np.linalg.svd(aux)

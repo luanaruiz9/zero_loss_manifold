@@ -55,7 +55,7 @@ class Net(nn.Module):
 np.random.seed(0)
 n_realizations = 1
 
-feats = 128
+feats = 20
 
 m = 10#int(sys.argv[1]) #4, 8, 12, 16
 alpha = 0.1#float(sys.argv[2]) #0, 0.01, 0.1
@@ -68,10 +68,10 @@ label_noise = True
 scaling = 0.7#float(sys.argv[4]) #0.5, 1, 2, 3
 
 if low_data:
-    lr = 0.000001#0.001
+    lr = 0.000005
     reduction_factor = 0.9*scaling*(feats)/10000
 else:
-    lr = 0.000001
+    lr = 0.00001
     reduction_factor = (1/scaling)*(m)*(feats-1)/10000
 if label_noise:
     thisFilename = 'synthetic_label_noise_low_data=' + str(low_data) + '_m=' + str(m) + '_a=' + str(alpha) + '_sc=' + str(scaling) # This is the general name of all related files
@@ -100,9 +100,9 @@ if not os.path.exists(saveDir):
 #     the num_worker of torch.utils.data.DataLoader() to 0.
 
 if low_data == True:
-    n_epochs = 1000000
+    n_epochs = 10000
 else:
-    n_epochs = 1000
+    n_epochs = 2000
     
 val_ratio = 0.1
 old_train_size = 10000
@@ -113,7 +113,7 @@ old_testset = SyntheticData(old_test_size, feats, mu=1, sigma=0.1)
 train_size = int(reduction_factor*old_train_size)
 test_size = int(reduction_factor*len(old_testset))
 
-"""
+
 net_teacher = Net(m, alpha, ortho='True')
 
 trainloader = torch.utils.data.DataLoader(old_trainset, batch_size=old_train_size,
@@ -134,7 +134,7 @@ with torch.no_grad():
     y = net_teacher(x)
     old_testset.change_labels(torch.tensor(y))
     
-"""
+
 # Save info
 
 hyperparameter_dict = {'nb_activations': str(m), 
@@ -198,7 +198,7 @@ for r in range(n_realizations):
     
     criterion = nn.MSELoss()
     optimizer = optim.SGD(net.parameters(), lr=lr)#, weight_decay=0.0005)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=1000, gamma=1)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=500, gamma=0.9)
     
     ########################################################################
     # 4. Train the network
@@ -385,7 +385,7 @@ for r in range(n_realizations):
     
     y = save_labels
     x = save_x
-    
+    """
     y = y/m
     if alpha == 0:
         y = torch.pow(y,1/3)
@@ -411,7 +411,7 @@ for r in range(n_realizations):
     plt.rcParams.update({'font.size': 8})
     
     fig, axs = plt.subplots(2,int(m/2),sharex=True, sharey=True)
-    
+    """
     save_y_gnn = np.zeros((len(weights_list),m,x.shape[0])) # training steps, m, nb of samples, nb of classes
     save_rrmse = []
     
@@ -420,16 +420,16 @@ for r in range(n_realizations):
         for j, weights in enumerate(weights_list):
             weight = weights[i].cpu().numpy()
             y_gnn = np.dot(x,np.transpose(weight))
-            rrmse.append(100*np.sqrt(np.mean(np.linalg.norm(y_reg-y_gnn,axis=-1)**2)/
-                                     np.sum(np.linalg.norm(y_reg,axis=-1)**2)))   
+            #rrmse.append(100*np.sqrt(np.mean(np.linalg.norm(y_reg-y_gnn,axis=-1)**2)/
+            #                         np.sum(np.linalg.norm(y_reg,axis=-1)**2)))   
             save_y_gnn[j,i] = y_gnn.squeeze()
-        rrmse = np.array(rrmse)
-        save_rrmse.append(rrmse)
-        print(rrmse[-1])
+        #rrmse = np.array(rrmse)
+        #save_rrmse.append(rrmse)
+        #print(rrmse[-1])
         #axs[int(i % 2),int(i % int(m/2))].plot(x_axis, rrmse)
         
-    save_dict = {'rrmse': save_rrmse}
-    pkl.dump(save_dict,open(os.path.join(saveDir,'rrmse_' + str(r) + '.p'),'wb'))
+    #save_dict = {'rrmse': save_rrmse}
+    #pkl.dump(save_dict,open(os.path.join(saveDir,'rrmse_' + str(r) + '.p'),'wb'))
     
     # Rank
     
@@ -452,7 +452,7 @@ for r in range(n_realizations):
     save_dict = {'eigs': eigs}
     pkl.dump(save_dict,open(os.path.join(saveDir,'eigs_' + str(r) + '.p'),'wb'))
     
-    for i in range(m):
+    for i in range(1,m):
         ax_rank.plot(x_axis, eigs[i,0:-1]/eigs[0,0:-1], label='lam'+str(i+1))
     #ax_rank.legend()
     ax_rank.set_xscale('log')

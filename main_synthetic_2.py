@@ -69,10 +69,10 @@ label_noise = True
 scaling = 0.7#float(sys.argv[4]) #0.5, 1, 2, 3
 
 if low_data:
-    lr = 0.00001
+    lr = 0.000001
     reduction_factor = 0.9*scaling*(feats)/10000
 else:
-    lr = 0.00001
+    lr = 0.000001
     reduction_factor = (1/scaling)*(m)*(feats-1)/10000
 if label_noise:
     thisFilename = 'synthetic_label_noise_low_data=' + str(low_data) + '_m=' + str(m) + '_a=' + str(alpha) + '_sc=' + str(scaling) # This is the general name of all related files

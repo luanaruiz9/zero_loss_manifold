@@ -439,13 +439,12 @@ for r in range(n_realizations):
     eigs = np.zeros((m, save_y_gnn.shape[0]))
     
     for i in range(save_y_gnn.shape[0]):
-        #aux_tensor = torch.tensor(np.reshape(save_y_gnn[i],(m,-1)))
-        #aux_tensor = aux_tensor.to_sparse()
-        #U, L,_ = torch.svd_lowrank(aux_tensor,q=m)
-        #eigs[:,i] = L.cpu().numpy()
-        #U = U.cpu().numpy()
-        aux = np.reshape(save_y_gnn[i],(m,-1))
-        _, L, _ = np.linalg.svd(aux)
+        aux_tensor = torch.tensor(np.reshape(save_y_gnn[i],(m,-1)))
+        aux_tensor = aux_tensor.to_sparse()
+        _, L,_ = torch.svd_lowrank(aux_tensor,q=m)
+        eigs[0:L.shape[0],i] = L.cpu().numpy()
+        #aux = np.reshape(save_y_gnn[i],(m,-1))
+        #_, L, _ = np.linalg.svd(aux)
         eigs[0:L.shape[0],i] = L
         
     all_eigs.append(eigs)

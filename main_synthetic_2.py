@@ -62,7 +62,7 @@ m = 100#int(sys.argv[1]) #4, 8, 12, 16
 alpha = 0.1#float(sys.argv[2]) #0, 0.01, 0.1
 sig = 0.05
 batch_size = 'all'#sys.argv[3] #32 #'all'
-low_data = False#str(sys.argv[3]) == 'True'
+low_data = str(sys.argv[1]) == 'True'
 if 'all' not in str(batch_size):
     batch_size = int(batch_size)
 label_noise = True

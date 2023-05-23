@@ -108,8 +108,8 @@ else:
 val_ratio = 0.1
 old_train_size = 10000
 old_test_size = 2000
-old_trainset = SyntheticData(old_train_size, feats, mu=0, sigma=0.1)
-old_testset = SyntheticData(old_test_size, feats, mu=0, sigma=0.1)
+old_trainset = SyntheticData(old_train_size, feats, mu=1, sigma=0.1)
+old_testset = SyntheticData(old_test_size, feats, mu=1, sigma=0.1)
 
 train_size = int(reduction_factor*old_train_size)
 test_size = int(reduction_factor*len(old_testset))
@@ -420,7 +420,7 @@ for r in range(n_realizations):
         rrmse = []
         for j, weights in enumerate(weights_list):
             weight = weights[i].cpu().numpy()
-            y_gnn = np.dot(x,np.transpose(weight))
+            y_gnn = np.dot(x.cpu().numpy(),np.transpose(weight))
             #rrmse.append(100*np.sqrt(np.mean(np.linalg.norm(y_reg-y_gnn,axis=-1)**2)/
             #                         np.sum(np.linalg.norm(y_reg,axis=-1)**2)))   
             save_y_gnn[j,i] = y_gnn.squeeze()

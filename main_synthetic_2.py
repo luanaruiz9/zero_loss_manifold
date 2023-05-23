@@ -55,23 +55,24 @@ class Net(nn.Module):
 np.random.seed(0)
 n_realizations = 1
 
-feats = 20
+feats = 32
 
-m = 10#int(sys.argv[1]) #4, 8, 12, 16
+m_teacher = 5
+m = 100#int(sys.argv[1]) #4, 8, 12, 16
 alpha = 0.1#float(sys.argv[2]) #0, 0.01, 0.1
 sig = 0.05
 batch_size = 'all'#sys.argv[3] #32 #'all'
-low_data = True#str(sys.argv[3]) == 'True'
+low_data = False#str(sys.argv[3]) == 'True'
 if 'all' not in str(batch_size):
     batch_size = int(batch_size)
 label_noise = True
 scaling = 0.7#float(sys.argv[4]) #0.5, 1, 2, 3
 
 if low_data:
-    lr = 0.000005
+    lr = 0.000001
     reduction_factor = 0.9*scaling*(feats)/10000
 else:
-    lr = 0.00001
+    lr = 0.000001
     reduction_factor = (1/scaling)*(m)*(feats-1)/10000
 if label_noise:
     thisFilename = 'synthetic_label_noise_low_data=' + str(low_data) + '_m=' + str(m) + '_a=' + str(alpha) + '_sc=' + str(scaling) # This is the general name of all related files
@@ -100,21 +101,21 @@ if not os.path.exists(saveDir):
 #     the num_worker of torch.utils.data.DataLoader() to 0.
 
 if low_data == True:
-    n_epochs = 10000
+    n_epochs = 1000
 else:
-    n_epochs = 2000
+    n_epochs = 1000
     
 val_ratio = 0.1
 old_train_size = 10000
 old_test_size = 2000
-old_trainset = SyntheticData(old_train_size, feats, mu=1, sigma=0.1)
-old_testset = SyntheticData(old_test_size, feats, mu=1, sigma=0.1)
+old_trainset = SyntheticData(old_train_size, feats, mu=0, sigma=0.1)
+old_testset = SyntheticData(old_test_size, feats, mu=0, sigma=0.1)
 
 train_size = int(reduction_factor*old_train_size)
 test_size = int(reduction_factor*len(old_testset))
 
 
-net_teacher = Net(m, alpha, ortho='True')
+net_teacher = Net(m_teacher, alpha, ortho='False')
 
 trainloader = torch.utils.data.DataLoader(old_trainset, batch_size=old_train_size,
                                           shuffle=False, num_workers=0)
@@ -172,7 +173,7 @@ for r in range(n_realizations):
         batch_size = train_size
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                               shuffle=True, num_workers=0)
-    val_interval = 10
+    val_interval = 1
     valloader = torch.utils.data.DataLoader(valset, batch_size=val_size,
                                              shuffle=False, num_workers=0)
     
@@ -222,7 +223,7 @@ for r in range(n_realizations):
     running_loss = 0
     for epoch in range(n_epochs):  # loop over the dataset multiple times
         for i, data in tqdm(enumerate(trainloader, 0)):
-            if epoch == 0 and i == 0: # or (epoch == 1 and i == 0):
+            if epoch == 0 and i == 0: 
                 weights = []
                 for weight in list(net.parameters()):
                     weights.append(weight.detach().clone())
@@ -251,7 +252,7 @@ for r in range(n_realizations):
     
             # print statistics
             running_loss += loss.item()
-            if epoch % val_interval == val_interval-1 or (epoch == 1 and i == 0):    # print every 100 mini-batches
+            if epoch % val_interval == val_interval-1 or (epoch == 0 and i == 0):    # print every 100 mini-batches
                 if r == 0:
                     step_count = step_count + val_interval 
                     x_axis.append(step_count)
@@ -445,7 +446,7 @@ for r in range(n_realizations):
         #U = U.cpu().numpy()
         aux = np.reshape(save_y_gnn[i],(m,-1))
         _, L, _ = np.linalg.svd(aux)
-        eigs[:,i] = L[0:m]
+        eigs[0:L.shape[0],i] = L
         
     all_eigs.append(eigs)
         

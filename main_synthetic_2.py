@@ -101,9 +101,9 @@ if not os.path.exists(saveDir):
 #     the num_worker of torch.utils.data.DataLoader() to 0.
 
 if low_data == True:
-    n_epochs = 1000
+    n_epochs = 50000
 else:
-    n_epochs = 1000
+    n_epochs = 50000
     
 val_ratio = 0.1
 old_train_size = 10000

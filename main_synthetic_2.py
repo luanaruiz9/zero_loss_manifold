@@ -69,10 +69,10 @@ label_noise = True
 scaling = 0.7#float(sys.argv[4]) #0.5, 1, 2, 3
 
 if low_data:
-    lr = 0.000001
+    lr = 0.00001
     reduction_factor = 0.9*scaling*(feats)/10000
 else:
-    lr = 0.000001
+    lr = 0.00001
     reduction_factor = (1/scaling)*(m)*(feats-1)/10000
 if label_noise:
     thisFilename = 'synthetic_label_noise_low_data=' + str(low_data) + '_m=' + str(m) + '_a=' + str(alpha) + '_sc=' + str(scaling) # This is the general name of all related files
@@ -101,9 +101,9 @@ if not os.path.exists(saveDir):
 #     the num_worker of torch.utils.data.DataLoader() to 0.
 
 if low_data == True:
-    n_epochs = 10000
+    n_epochs = 1000
 else:
-    n_epochs = 10000
+    n_epochs = 1000
     
 val_ratio = 0.1
 old_train_size = 10000
@@ -173,7 +173,7 @@ for r in range(n_realizations):
         batch_size = train_size
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                               shuffle=True, num_workers=0)
-    val_interval = 100
+    val_interval = 50
     valloader = torch.utils.data.DataLoader(valset, batch_size=val_size,
                                              shuffle=False, num_workers=0)
     

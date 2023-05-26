@@ -5,7 +5,6 @@ Created on Fri May 12 15:28:57 2023
 @author: Luana Ruiz
 """
 import codecs
-import sys
 import os.path
 import pickle
 from typing import Any, Callable, Optional, Tuple
@@ -26,8 +25,8 @@ from PIL import Image
 from torchvision.datasets.utils import check_integrity, download_and_extract_archive, extract_archive, verify_str_arg
 from torchvision.datasets.vision import VisionDataset
 
-#from torchvision.datasets.utils import check_integrity, download_and_extract_archive
-#from torchvision.datasets.vision import VisionDataset
+
+# Synthetic data class
 
 class SyntheticData(VisionDataset):
     
@@ -39,52 +38,28 @@ class SyntheticData(VisionDataset):
         self.data = []
         self.targets = []
         
-        h1 = int(f/2)
-        h2 = f-h1
-
         for i in range(n):
-            datum1 = torch.normal(mu*torch.ones(h1),
-                                 sigma*torch.ones(h1))
-            datum2 = torch.normal(0,
-                                 0.05*torch.ones(h2))
-            if i < int(n/2):
-                datum = torch.cat((datum1,datum2))
-                target = torch.ones(1)
-            else:
-                datum = torch.cat((datum2,datum1))
-                target = torch.zeros(1)
-            self.data.append(datum)
-            self.targets.append(target)
-        
+            x = torch.normal(mu*torch.ones(f),
+                                 sigma*torch.ones(f))
+            self.targets.append(torch.mean(torch.pow(x,3)+0.1*x)) # labels don't matter
+                                                                    # if they will be 
+                                                                    # replaced by the teacher
+            self.data.append(x)
+    
+    # Function to change labels (e.g., use teacher labels)
     def change_labels(self, y):
         self.targets = y
-        print(self.targets.shape)
         
     def __getitem__(self, index):
-        """
-        Args:
-            index (int): Index
-
-        Returns:
-            tuple: (image, target) where target is index of the target class.
-        """
-
         return self.data[index], self.targets[index]
 
 
     def __len__(self) -> int:
         return len(self.data)
 
-
-
-
-
-
-
-
-
-
-
+# Other data classes. See below for MNIST and CIFAR 
+#(the classes below allow pruning these datasets to consider less classes, e.g.,
+# only cat and dog)
 
 def get_int(b: bytes) -> int:
     return int(codecs.encode(b, "hex"), 16)
@@ -349,10 +324,6 @@ class MNISTFiltered(VisionDataset):
     def extra_repr(self) -> str:
         split = "Train" if self.train is True else "Test"
         return f"Split: {split}"
-
-
-
-
 
 class CIFARFiltered(VisionDataset):
     """`CIFAR10 <https://www.cs.toronto.edu/~kriz/cifar.html>`_ Dataset.

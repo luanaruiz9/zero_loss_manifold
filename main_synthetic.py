@@ -8,8 +8,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torchvision
-import torchvision.transforms as transforms
+import torch.optim as optim
 from sklearn.linear_model import LinearRegression
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -18,6 +17,11 @@ from dataset import SyntheticData
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 print(device)
+
+
+##############################################################################
+## Neural network architecture
+
 
 def nonlinear(x, alpha):
     return torch.pow(x,3) + alpha*x
@@ -30,8 +34,8 @@ class Net(nn.Module):
         fc = []
         for i in range(m):
             this_layer = nn.Linear(feats, 1, bias=False, device=device)
-            #if ortho:
-            #    nn.init.orthogonal_(this_layer.weight)
+            if ortho:
+                nn.init.zeros_(this_layer.weight)
             fc.append(this_layer)
         self.fc = nn.ParameterList(fc)
 
@@ -47,32 +51,44 @@ class Net(nn.Module):
         return agg
 
 
-
-
-
-
+##############################################################################
+## Hyperparameters of the simulation
 
 np.random.seed(0)
-n_realizations = 10
+n_realizations = 1 # number of runs
 
-feats = 32
+feats = 128 # data dimension
+m_teacher = 5 # nb activations of the teacher network
+m = 100 #int(sys.argv[1]) #4, 8, 12, 16 # nb activations student network
+alpha = 0.1#float(sys.argv[2]) #0, 0.01, 0.1 # alpha param. of nonlinearity
 
-m = int(sys.argv[1]) #4, 8, 12, 16
-alpha = float(sys.argv[2]) #0, 0.01, 0.1
-sig = 0.03
 batch_size = 'all'#sys.argv[3] #32 #'all'
-low_data = str(sys.argv[3]) == 'True'
+low_data = True#str(sys.argv[1]) == 'True' # if True, overparametrized; o.w., 
+                                            # underparametrized
 if 'all' not in str(batch_size):
     batch_size = int(batch_size)
-label_noise = True
-scaling = float(sys.argv[4]) #0.5, 1, 2, 3
+    
+label_noise = True # whether to use SGD or label noise SGD
+sig = 0.05 # variance of label noise
 
+scaling = 0.7#float(sys.argv[4]) #0.5, 1, 2, 3 # scaling factor for the 
+                                                # number of samples. 
+                                                # If low_data=True, it multiplies 
+                                                # the current number of samples; 
+                                                # o.w., it divides it.
+
+# Setting learning rate and reduction factor for the number of samples in either case
 if low_data:
-    lr = 0.001#0.001
+    lr = 0.000001
     reduction_factor = 0.9*scaling*(feats)/10000
 else:
-    lr = 0.005
+    lr = 0.000001
     reduction_factor = (1/scaling)*(m)*(feats-1)/10000
+    
+    
+##############################################################################
+## File handling
+ 
 if label_noise:
     thisFilename = 'synthetic_label_noise_low_data=' + str(low_data) + '_m=' + str(m) + '_a=' + str(alpha) + '_sc=' + str(scaling) # This is the general name of all related files
 else:
@@ -90,36 +106,31 @@ saveDir = saveDir + '-' + today
 if not os.path.exists(saveDir):
     os.makedirs(saveDir)
 
-########################################################################
-# The output of torchvision datasets are PILImage images of range [0, 1].
-# We transform them to Tensors of normalized range [-1, 1].
 
-########################################################################
-# .. note::
-#     If running on Windows and you get a BrokenPipeError, try setting
-#     the num_worker of torch.utils.data.DataLoader() to 0.
+##############################################################################
+## Training and test settings
 
+# Nb epochs in either case
 if low_data == True:
-    n_epochs = 500
+    n_epochs = 20000
 else:
-    n_epochs = 500
+    n_epochs = 50000
     
-val_ratio = 0.1
+val_ratio = 0.1 # ratio of training samples to use for validation
 old_train_size = 10000
-old_test_size = 1000
-old_trainset = SyntheticData(old_train_size, feats, mu=0, sigma=1)
+old_test_size = 2000
+old_trainset = SyntheticData(old_train_size, feats, mu=0, sigma=0.5)
+old_testset = SyntheticData(old_test_size, feats, mu=0, sigma=0.5)
 
-np.random.seed(0)
-old_testset = SyntheticData(old_test_size, feats, mu=0, sigma=1)
-
+# Rescale train and test size according to reduction factor
 train_size = int(reduction_factor*old_train_size)
 test_size = int(reduction_factor*len(old_testset))
 
-#net_teacher = Net(m, alpha, ortho='True')
+# Define and apply teacher network to generate labels
+net_teacher = Net(m_teacher, alpha, ortho=False)
 
-#trainloader = torch.utils.data.DataLoader(old_trainset, batch_size=old_train_size,
-                                          #shuffle=False, num_workers=0)
-"""
+trainloader = torch.utils.data.DataLoader(old_trainset, batch_size=old_train_size,
+                                          shuffle=False, num_workers=0)
 dataiter = iter(trainloader)
 x, _ = next(dataiter)
 x = x.to(device)
@@ -135,9 +146,9 @@ x = x.to(device)
 with torch.no_grad():
     y = net_teacher(x)
     old_testset.change_labels(torch.tensor(y))
-"""    
-
-# Save info
+    
+##############################################################################
+## Saving hyperparameters and training details
 
 hyperparameter_dict = {'nb_activations': str(m), 
                        'label_noise_flag': str(label_noise),
@@ -154,15 +165,19 @@ hyperparameter_dict = {'nb_activations': str(m),
 with open(os.path.join(saveDir,"hyperparameters.txt"), 'w') as f: 
     for key, value in hyperparameter_dict.items(): 
         f.write('%s:%s\n' % (key, value))
+        
+##############################################################################
+## Training    
 
-#classes = ('cat','dog')#,'2','3','4','5','6','7','8','9')
-
-all_loss_vecs = []
-all_test_accs = []
-all_eigs = []
+all_loss_vecs = [] # save training losses for all realizations
+all_test_accs = [] # save test losses for all realizations
+all_eigs = [] # save singular values for all realizations
+all_rank = [] # save rank for all realizations
+all_trace = [] # save trace for all realizations
 
 for r in range(n_realizations):
 
+    # Random realization of the data    
     train_perm = torch.randperm(old_train_size)[0:train_size]
     valset = torch.utils.data.Subset(old_trainset,
                                        train_perm[0:int(val_ratio*train_size)])
@@ -170,14 +185,14 @@ for r in range(n_realizations):
                                        train_perm[int(val_ratio*train_size):train_size])
     train_size = len(trainset)
     val_size = len(valset)
+    
     if batch_size == 'all':
         batch_size = train_size
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                               shuffle=True, num_workers=0)
-    val_interval = 1
+    val_interval = 2
     valloader = torch.utils.data.DataLoader(valset, batch_size=val_size,
                                              shuffle=False, num_workers=0)
-    
     testset = torch.utils.data.Subset(old_testset,
                                        torch.randperm(old_test_size)[0:test_size])
     testloader = torch.utils.data.DataLoader(testset, batch_size=test_size,
@@ -189,18 +204,16 @@ for r in range(n_realizations):
     # Copy the neural network from the Neural Networks section before and modify it to
     # take 3-channel images (instead of 1-channel images as it was defined).
     
-    net = Net(m, alpha)
+    net = Net(m, alpha, ortho=False)
     
     ########################################################################
     # 3. Define a Loss function and optimizer
     # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
     # Let's use a Classification Cross-Entropy loss and SGD with momentum.
     
-    import torch.optim as optim
-    
     criterion = nn.MSELoss()
     optimizer = optim.SGD(net.parameters(), lr=lr)#, weight_decay=0.0005)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=50, gamma=0.5)
+    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=500, gamma=0.9)
     
     ########################################################################
     # 4. Train the network
@@ -209,6 +222,7 @@ for r in range(n_realizations):
     # This is when things start to get interesting.
     # We simply have to loop over our data iterator, and feed the inputs to the
     # network and optimize.
+    
     loss_vec = []
     weights_list = []
     test_accs = []
@@ -224,7 +238,7 @@ for r in range(n_realizations):
     running_loss = 0
     for epoch in range(n_epochs):  # loop over the dataset multiple times
         for i, data in tqdm(enumerate(trainloader, 0)):
-            if epoch == 0 and i == 0:
+            if epoch == 0 and i == 0: 
                 weights = []
                 for weight in list(net.parameters()):
                     weights.append(weight.detach().clone())
@@ -242,8 +256,8 @@ for r in range(n_realizations):
             updated_labels = labels#F.one_hot(labels, num_classes=C).float() 
             noisy_labels = updated_labels.clone()
             if label_noise:
-                noisy_labels += torch.normal(0,
-                                             sig*torch.ones(updated_labels.shape,device=device))
+                noisy_labels += torch.normal(0,sig*torch.ones(updated_labels.shape,
+                                                              device=device))
             if epoch == 0:
                 save_x = torch.cat((save_x, inputs), dim=0)
                 save_labels = torch.cat((save_labels, updated_labels), dim=0)
@@ -253,7 +267,7 @@ for r in range(n_realizations):
     
             # print statistics
             running_loss += loss.item()
-            if epoch % val_interval == val_interval-1:    # print every 100 mini-batches
+            if epoch % val_interval == val_interval-1 or (epoch == 0 and i == 0):    # print every 100 mini-batches
                 if r == 0:
                     step_count = step_count + val_interval 
                     x_axis.append(step_count)
@@ -261,13 +275,16 @@ for r in range(n_realizations):
                 for weight in list(net.parameters()):
                     weights.append(weight.detach().clone())
                 weights_list.append(weights)
-                loss_vec.append(running_loss/val_interval)
                 print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / val_interval:.3f}')
-                running_loss = 0.0
+                if epoch == 0 and i == 0:
+                    loss_vec.append(running_loss)
+                else:
+                    loss_vec.append(running_loss/val_interval)
+                    running_loss = 0.0
+                total = 0
+                correct = 0
                 with torch.no_grad():
-                    val_acc = 0
-                    test_acc = 0
-                    for i, data in enumerate(valloader):
+                    for data in valloader:
                         images, labels = data
                         images = images.to(device)
                         labels = labels.to(device)
@@ -275,14 +292,12 @@ for r in range(n_realizations):
                         outputs = net(images)
                         # the class with the highest energy is what we choose as prediction
                         predicted = outputs
-                        val_acc += F.mse_loss(labels,predicted)
-                    test_acc = test_acc/(i+1)
+                    val_acc = F.mse_loss(labels,predicted)
                     print(f'[{epoch + 1}, {i + 1:5d}] accu: {val_acc:.3f}')
                     if val_acc < acc_old:
                         save_net = net
                         acc_old = val_acc
-                    test_acc = 0
-                    for i, data in enumerate(testloader):
+                    for data in testloader:
                         images, labels = data
                         images = images.to(device)
                         labels = labels.to(device)
@@ -290,10 +305,8 @@ for r in range(n_realizations):
                         outputs = net(images)
                         # the class with the highest energy is what we choose as prediction
                         predicted = outputs
-                        test_acc += F.mse_loss(labels,predicted)
-                    test_acc = test_acc/(i+1)
-                    test_acc = test_acc.cpu().numpy()
-                    test_accs.append(test_acc)
+                        test_acc = F.mse_loss(labels,predicted)
+                    test_accs.append(test_acc.cpu().numpy())
                     
         scheduler.step()
     print('Finished Training')
@@ -306,21 +319,22 @@ for r in range(n_realizations):
         weights.append(weight.detach().clone())
     weights_list.append(weights)
     
+    
+    ##############################################################################
+    ## Plot training and test loss for this realization
+    
     fig, ax1 = plt.subplots()
     
     color = 'tab:red'
     ax1.set_xlabel('Training Steps')
+    ax1.set_xscale('log')
     ax1.set_ylabel('Loss (MSE)')
-    ax1.plot(x_axis[1:], loss_vec, color=color, label='Train')
-    
-    #ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
-    
+    loss_vec = loss_vec
+    ax1.plot(x_axis[1:], loss_vec, color=color, label='training')
     color = 'tab:blue'
-    #ax2.set_ylabel('Test Loss (MSE)')  # we already handled the x-label with ax1
-    ax1.plot(x_axis[1:], test_accs, color=color, label='Test')
+    ax1.plot(x_axis[1:], test_accs, color=color, label='test')
     plt.legend()
     fig.tight_layout()
-    
     #plt.show()
     
     fig.savefig(os.path.join(saveDir,'train_test_' + str(r) + '.png'))
@@ -351,25 +365,14 @@ for r in range(n_realizations):
     # Next, let's load back in our saved model (note: saving and re-loading the model
     # wasn't necessary here, we only did it to illustrate how to do so):
     
-    net = Net(m, alpha)
+    net = Net(m, alpha, ortho=False)
     net.load_state_dict(torch.load(PATH))
     
-    ########################################################################
-    # Okay, now let us see what the neural network thinks these examples above are:
-    
-    outputs = outputs.to(device)
-    images = images.to(device)
-    outputs = net(images)
-    
-    ########################################################################
-    # The results seem pretty good.
-    #
-    # Let us look at how the network performs on the whole dataset.
-    
-    test_acc = 0
+    correct = 0
+    total = 0
     # since we're not training, we don't need to calculate the gradients for our outputs
     with torch.no_grad():
-        for i, data in enumerate(testloader):
+        for data in testloader:
             images, labels = data
             images = images.to(device)
             labels = labels.to(device)
@@ -377,19 +380,23 @@ for r in range(n_realizations):
             outputs = net(images)
             # the class with the highest energy is what we choose as prediction
             predicted = outputs
-            test_acc += F.mse_loss(labels,predicted)
-        test_acc = test_acc/(i+1)
+            test_acc = F.mse_loss(labels,predicted)
     
-    print(f'Accuracy of the network on the test images: {test_acc}')
+    print(f'Loss of the network on the test images: {test_acc}')
     
+    # Save training and test loss vectors, as well as the networks weights for all epochs
     save_dict = {'train_loss': loss_vec, 'test_acc': test_accs}
     pkl.dump(save_dict,open(os.path.join(saveDir,'train_test_' + str(r) + '.p'),'wb'))
     save_dict = {'weights_list': weights_list, 'save_labels': save_labels, 'save_x': save_x}
     pkl.dump(save_dict,open(os.path.join(saveDir,'saved_data_' + 'r' + '.p'),'wb'))
     
+    ##############################################################################
+    ## Regression
+    
     y = save_labels
     x = save_x
     
+    """
     y = y/m
     if alpha == 0:
         y = torch.pow(y,1/3)
@@ -415,54 +422,75 @@ for r in range(n_realizations):
     plt.rcParams.update({'font.size': 8})
     
     fig, axs = plt.subplots(2,int(m/2),sharex=True, sharey=True)
+    """
+    
+    ##############################################################################
+    ## Plot properties of the Hessian and rrmse between NN and regression weights
+    ## for this realization
     
     save_y_gnn = np.zeros((len(weights_list),m,x.shape[0])) # training steps, m, nb of samples, nb of classes
-    save_rrmse = []
+    #save_rrmse = []
     
     for i in range(m):
-        rrmse = []
+        #rrmse = []
         for j, weights in enumerate(weights_list):
             weight = weights[i].cpu().numpy()
-            y_gnn = np.dot(x,np.transpose(weight))
-            rrmse.append(100*np.sqrt(np.mean(np.linalg.norm(y_reg-y_gnn,axis=-1)**2)/
-                                     np.sum(np.linalg.norm(y_reg,axis=-1)**2)))   
+            y_gnn = np.dot(x.cpu().numpy(),np.transpose(weight))
+            #rrmse.append(100*np.sqrt(np.mean(np.linalg.norm(y_reg-y_gnn,axis=-1)**2)/
+            #                         np.sum(np.linalg.norm(y_reg,axis=-1)**2)))   
             save_y_gnn[j,i] = y_gnn.squeeze()
-        rrmse = np.array(rrmse)
-        save_rrmse.append(rrmse)
-        print(rrmse[-1])
+        #rrmse = np.array(rrmse)
+        #save_rrmse.append(rrmse)
+        #print(rrmse[-1])
         #axs[int(i % 2),int(i % int(m/2))].plot(x_axis, rrmse)
         
-    save_dict = {'rrmse': save_rrmse}
-    pkl.dump(save_dict,open(os.path.join(saveDir,'rrmse_' + str(r) + '.p'),'wb'))
+    #save_dict = {'rrmse': save_rrmse}
+    #pkl.dump(save_dict,open(os.path.join(saveDir,'rrmse_' + str(r) + '.p'),'wb'))
     
-    # Rank
+    # SVs, rank, trace
     
-    fig_rank, ax_rank = plt.subplots(1,1)
+    fig_rank, ax_rank = plt.subplots(1,3, figsize=(45,15), sharex=True)
     
     eigs = np.zeros((m, save_y_gnn.shape[0]))
+    rank = np.zeros(save_y_gnn.shape[0])
+    trace = np.zeros(save_y_gnn.shape[0])
     
     for i in range(save_y_gnn.shape[0]):
-        aux_tensor = torch.tensor(np.reshape(save_y_gnn[i],(m,-1)))
-        aux_tensor = aux_tensor.to_sparse()
-        U, L,_ = torch.svd_lowrank(aux_tensor,q=m)
-        eigs[:,i] = L.cpu().numpy()
-        U = U.cpu().numpy()
-    
-    all_eigs.append(eigs)
+        #aux_tensor = torch.tensor(np.reshape(save_y_gnn[i],(m,-1)))
+        #aux_tensor = aux_tensor.to_sparse()
+        #_, L,_ = torch.svd_lowrank(aux_tensor,q=15)
+        #eigs[0:L.shape[0],i] = L.cpu().numpy()
+        aux = np.reshape(save_y_gnn[i],(m,-1))
+        _, L, _ = np.linalg.svd(aux)
+        eigs[0:L.shape[0],i] = L
+        rank[i] = np.linalg.matrix_rank(aux)
+        trace[i] = np.sum(L)
         
-    save_dict = {'eigs': eigs}
+    all_eigs.append(eigs)
+    all_rank.append(rank)
+    all_trace.append(trace)
+        
+    save_dict = {'eigs': eigs, 'rank': rank, 'trace': trace}
     pkl.dump(save_dict,open(os.path.join(saveDir,'eigs_' + str(r) + '.p'),'wb'))
     
-    for i in range(m):
-        ax_rank.plot(x_axis, eigs[i,0:-1]/eigs[0,0:-1], label='lam'+str(i+1))
+    plt.xscale('log')
+    for i in range(0,m):
+        ax_rank[0].plot(x_axis, eigs[i,0:-1]/eigs[0,0:-1], label='lam'+str(i+1))
+    ax_rank[0].set_title("SVs")
+    ax_rank[1].plot(x_axis, rank[0:-1])
+    ax_rank[1].set_title("Rank")
+    ax_rank[2].plot(x_axis, trace[0:-1])
+    ax_rank[2].set_title("Trace")
     #ax_rank.legend()
-    plt.xlabel("Training Steps")
-    plt.ylabel("Singular Values")
         
     fig_rank.savefig(os.path.join(saveDir,'rank_' + str(r) + '.png'))
     fig_rank.savefig(os.path.join(saveDir,'rank_' + str(r) + '.pdf'))
 
-# Train loss and test accuracy
+
+##############################################################################
+## Plot mean and standard deviations over all realizations (outdated)
+
+"""
 
 all_loss_vecs = np.array(all_loss_vecs)
 all_test_accs = np.array(all_test_accs)
@@ -478,10 +506,11 @@ fig, ax1 = plt.subplots()
 color = 'tab:red'
 ax1.set_xlabel('Training Steps')
 ax1.set_ylabel('Loss (MSE)')
+ax1.set_xscale('log')
 ax1.fill_between(x_axis[1:], mean_loss-std_loss, 
                  mean_loss+std_loss,
                  color=color, alpha=0.1)
-ax1.plot(x_axis[1:], mean_loss, color=color, label='Train')
+ax1.plot(x_axis[1:], mean_loss, color=color, label='training')
 
 #ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
 
@@ -490,8 +519,8 @@ color = 'tab:blue'
 ax1.fill_between(x_axis[1:], mean_acc-std_acc,
                  mean_acc + std_acc,
                  color=color, alpha=0.1)
-ax1.plot(x_axis[1:], mean_acc, color=color, label='Test')
-
+ax1.plot(x_axis[1:], mean_acc, color=color, label='test')
+plt.legend()
 fig.tight_layout()
 
 #plt.show()
@@ -499,7 +528,7 @@ fig.tight_layout()
 fig.savefig(os.path.join(saveDir,'mean_train_test.png'))
 fig.savefig(os.path.join(saveDir,'mean_train_test.pdf'))
 
-# Rank
+# SVs
 
 all_eigs = np.vstack(all_eigs)
 all_eigs = np.reshape(all_eigs,(n_realizations,m,-1))
@@ -517,8 +546,11 @@ for i in range(m):
                          color=cmap(color_code[i]),alpha=0.1)
     ax_rank.plot(x_axis, mean_eigs[i,0:-1], label='lam'+str(i+1),color=cmap(color_code[i]))
 #ax_rank.legend()
+ax_rank.set_xscale('log')
 plt.xlabel("Training Steps")
 plt.ylabel("Singular Values")
     
 fig_rank.savefig(os.path.join(saveDir,'mean_rank.png'))
 fig_rank.savefig(os.path.join(saveDir,'mean_rank.pdf'))
+
+"""
